@@ -1,0 +1,42 @@
+{
+  "name": "git-guardian",
+  "version": "0.1.1",
+  "description": "Project-local Git policy enforcement for branch names and commit messages.",
+  "type": "module",
+  "bin": {
+    "git-guardian": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "Readme.md",
+    "LICENSE",
+    "docs",
+    "examples"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/*.test.js",
+    "check": "npm test",
+    "pack:local": "npm pack",
+    "docs:check": "python3 scripts/check_docs.py"
+  },
+  "engines": {
+    "node": ">=20",
+    "git": ">=2.28"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "git",
+    "hooks",
+    "branch-naming",
+    "commit-message",
+    "conventional-commits",
+    "developer-tools",
+    "guardrails",
+    "cli"
+  ],
+  "license": "MIT"
+}

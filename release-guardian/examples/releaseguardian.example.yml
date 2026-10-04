@@ -1,0 +1,37 @@
+version: 1
+project:
+  framework: react-native
+  root: .
+provider: github-actions
+environment: internal
+release:
+  allowedBranches: [main]
+  requireCleanTree: true
+  requireCi: true
+  ciCheckName: guardian-ci / required
+ios:
+  workspace: ios/Lera.xcworkspace
+  scheme: Lera
+  bundleId: com.example.lera
+  teamId: REPLACE_WITH_APPLE_TEAM_ID
+  destination: testflight
+  signing: existing-assets
+  credentials:
+    keyIdEnv: ASC_KEY_ID
+    issuerIdEnv: ASC_ISSUER_ID
+    privateKeyPathEnv: ASC_PRIVATE_KEY_PATH
+    certificatePathEnv: IOS_CERTIFICATE_PATH
+    certificatePasswordEnv: IOS_CERTIFICATE_PASSWORD
+    profilePathEnv: IOS_PROFILE_PATH
+android:
+  projectDir: android
+  applicationId: com.example.lera
+  module: app
+  variant: release
+  destination: play-internal
+  credentials:
+    serviceAccountPathEnv: PLAY_SERVICE_ACCOUNT_PATH
+    keystorePathEnv: ANDROID_KEYSTORE_PATH
+    keystorePasswordEnv: ANDROID_KEYSTORE_PASSWORD
+    keyAliasEnv: ANDROID_KEY_ALIAS
+    keyPasswordEnv: ANDROID_KEY_PASSWORD

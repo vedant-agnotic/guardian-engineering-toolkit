@@ -1,0 +1,13 @@
+{
+  "name": "config-guardian",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Mobile environment configuration \u2014 standalone project specification",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "docs:check": "python3 scripts/check_docs.py"
+  }
+}

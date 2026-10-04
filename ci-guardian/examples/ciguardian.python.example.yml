@@ -1,0 +1,16 @@
+version: 1
+project:
+  type: generic
+  root: backend
+provider: github-actions
+checks:
+  - id: lint
+    command: [python, -m, ruff, check, .]
+    timeoutSeconds: 300
+  - id: unit
+    command: [python, -m, pytest]
+    timeoutSeconds: 900
+execution:
+  failFast: false
+report:
+  path: .guardian/ci/report.json

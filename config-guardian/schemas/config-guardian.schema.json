@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Config Guardian v1 proposed configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "framework": {
+          "const": "react-native"
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ios": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "project": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "project",
+            "target"
+          ]
+        },
+        "android": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "projectDir": {
+              "type": "string",
+              "minLength": 1
+            },
+            "module": {
+              "type": "string",
+              "minLength": 1
+            },
+            "gradleDsl": {
+              "enum": [
+                "groovy",
+                "kotlin"
+              ]
+            },
+            "flavorDimension": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "projectDir",
+            "module",
+            "gradleDsl",
+            "flavorDimension"
+          ]
+        }
+      },
+      "required": [
+        "framework",
+        "root"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "ios"
+          ]
+        },
+        {
+          "required": [
+            "android"
+          ]
+        }
+      ]
+    },
+    "environments": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "appName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publicValues": {
+            "type": "object",
+            "propertyNames": {
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "ios": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scheme": {
+                "type": "string",
+                "minLength": 1
+              },
+              "bundleId": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+              },
+              "configurations": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "debug": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "release": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "debug",
+                  "release"
+                ]
+              },
+              "iconAsset": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "scheme",
+              "bundleId",
+              "configurations",
+              "iconAsset"
+            ]
+          },
+          "android": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "flavor": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              },
+              "applicationId": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+              },
+              "iconResource": {
+                "type": "string",
+                "pattern": "^@mipmap/[a-z][a-z0-9_]*$"
+              }
+            },
+            "required": [
+              "flavor",
+              "applicationId",
+              "iconResource"
+            ]
+          }
+        },
+        "required": [
+          "appName",
+          "publicValues"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "ios"
+            ]
+          },
+          {
+            "required": [
+              "android"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "version",
+    "project",
+    "environments"
+  ]
+}
