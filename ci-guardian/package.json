@@ -2,12 +2,16 @@
   "name": "ci-guardian",
   "version": "0.0.0",
   "private": true,
-  "description": "Repeatable quality checks and CI workflow generation \u2014 documentation scaffold",
+  "description": "Repeatable quality checks and CI workflow generation — documentation scaffold",
   "license": "UNLICENSED",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "docs:check": "python3 scripts/check_docs.py"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
   }
 }

@@ -6,6 +6,8 @@
 
 **Project-local Git policy enforcement for branch names and commit messages.**
 
+> v0.1.1 · Download [Download tar file](git-guardian-0.1.1.tgz).
+
 Git Guardian installs Git hooks that reject non-conforming branch names before the branch is created and non-conforming commit subjects before the commit is recorded, with suggested fixes. Rules live in a committed `.git-guardian.yml`, so every clone enforces the same conventions.
 
 > v0.1.1 · Requires Node 20+ and Git 2.28+. Not yet published to npm; install from a local tarball as shown below. Cross-platform and minimum-version coverage are still being established; see [Testing](docs/TESTING.md).
