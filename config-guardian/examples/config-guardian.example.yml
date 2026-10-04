@@ -1,0 +1,58 @@
+version: 1
+project:
+  framework: react-native
+  root: .
+  ios:
+    project: ios/Example.xcodeproj
+    target: Example
+  android:
+    projectDir: android
+    module: app
+    gradleDsl: groovy
+    flavorDimension: environment
+environments:
+  development:
+    appName: Example Dev
+    publicValues:
+      API_BASE_URL: https://development-api.example.com
+    ios:
+      scheme: Example-Dev
+      bundleId: com.example.app.dev
+      configurations:
+        debug: Debug-Development
+        release: Release-Development
+      iconAsset: AppIcon
+    android:
+      flavor: dev
+      applicationId: com.example.app.dev
+      iconResource: '@mipmap/ic_launcher'
+  staging:
+    appName: Example Staging
+    publicValues:
+      API_BASE_URL: https://staging-api.example.com
+    ios:
+      scheme: Example-Staging
+      bundleId: com.example.app.staging
+      configurations:
+        debug: Debug-Staging
+        release: Release-Staging
+      iconAsset: AppIcon
+    android:
+      flavor: staging
+      applicationId: com.example.app.staging
+      iconResource: '@mipmap/ic_launcher'
+  production:
+    appName: Example
+    publicValues:
+      API_BASE_URL: https://production-api.example.com
+    ios:
+      scheme: Example
+      bundleId: com.example.app
+      configurations:
+        debug: Debug-Production
+        release: Release-Production
+      iconAsset: AppIcon
+    android:
+      flavor: production
+      applicationId: com.example.app
+      iconResource: '@mipmap/ic_launcher'

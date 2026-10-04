@@ -1,0 +1,19 @@
+version: 1
+project:
+  type: react-native
+  root: .
+provider: github-actions
+checks:
+  - id: lint
+    command: [npm, run, lint]
+    timeoutSeconds: 300
+  - id: typecheck
+    command: [npm, run, typecheck]
+    timeoutSeconds: 300
+  - id: unit
+    command: [npm, run, test, --, --runInBand]
+    timeoutSeconds: 900
+execution:
+  failFast: false
+report:
+  path: .guardian/ci/report.json
