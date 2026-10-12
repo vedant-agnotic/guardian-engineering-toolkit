@@ -159,28 +159,47 @@ Primary technical references: [Git hooks](https://git-scm.com/docs/githooks), [G
 
 Use Node 20+ and Git 2.28+ as declared by the package. Start in a disposable ordinary Git repository and install a verified local tarball as shown in the Readme (`git-guardian/Readme.md` in project archive). This avoids relying on unverified public registry ownership.
 
-Run `git-guardian init`. It asks for branch regex, commit regex and whether hooks should be installed. Empty responses retain defaults. Answer `n` to write only configuration. `init --yes` writes defaults and installs without prompting. Non-TTY init also proceeds with defaults even without --yes; do not invoke it merely to inspect a repository.
+Run `git-guardian init`. It asks three questions (branch name format, allowed types, commit message format) and whether hooks should be installed, showing an example after each answer. Press Enter to keep a default; an invalid format is explained and asked again. Answer `n` to write only configuration. `init --yes` writes defaults and installs without prompting. Non-TTY init also proceeds with defaults even without --yes; do not invoke it merely to inspect a repository.
 
 An existing config causes init to fail unless `--force` is supplied. Avoid force during normal onboarding; it replaces policy and can also affect hook backups. Commit `.git-guardian.yml`. A colleague then installs dependencies and runs `git-guardian install`, followed by doctor. Hook activation is local to each clone.
 
 ## Choose conventions
 
-The default branch pattern accepts types feature/fix/hotfix/chore/docs/refactor/test/release, an optional uppercase ticket and a lowercase hyphenated description. Examples: `feature/ABC-123-add-login`, `fix/LERA-428-payment-timeout`, `chore/update-dependencies`. The default release example is `release/v2-1-0`; dotted release versions require a custom pattern.
+Rules are written as readable formats, not regular expressions:
 
-Edit the generated YAML to change rules. Lists such as protected names are comma-separated scalar strings, not YAML arrays. Keep regexes anchored with ^ and $ if you want whole-string matching; the code does not add anchors. Run `git-guardian validate config`, then explicitly validate representative accepted/rejected inputs. Config validation does not prove that examples or suggestions satisfy a custom pattern.
+| Placeholder | Matches | Example |
+| --- | --- | --- |
+| `<type>` | one of the configured types | `feat` |
+| `<number>` | digits | `123` |
+| `<ticket>` | capital letters, hyphen, digits | `ABC-123` |
+| `<scope>` | lowercase area of the code | `auth` |
+| `<description>` | branches: lowercase words joined by hyphens; commits: any short text | `add-login` / `add login page` |
+
+Everything else is literal text. Wrap optional parts in square brackets: `<type>[(<scope>)]: <description>` accepts both `feat(auth): add login` and `feat: add login`. Branch formats cannot contain spaces.
+
+Defaults: branch format `<type>/<number>-<description>` (e.g. `feat/123-add-login`), commit format `<type>: <description>` (e.g. `feat: add login page`) and types `feat, chore, bugfix, task` for both. Other common setups:
+
+| Convention | Format |
+| --- | --- |
+| Jira ticket in branch | `<type>/<ticket>-<description>` |
+| Ticket optional | `<type>/[<ticket>-]<description>` |
+| Conventional Commits with optional scope | `<type>[(<scope>)]: <description>` |
+| Ticket before commit subject | `<ticket> <type>: <description>` |
+
+Edit the generated YAML to change rules. Lists such as types and protected names are comma-separated strings, not YAML arrays. Run `git-guardian validate config`, then try a few names with `validate branch` and `validate commit`.
 
 ## Daily work
 
 ```bash
-git switch -c feature/ABC-123-add-login
-git-guardian validate branch feature/ABC-123-add-login
-git-guardian validate commit -m 'feat(auth): add login'
-git-guardian branch suggest 'ABC-123 add login'
+git switch -c feat/123-add-login
+git-guardian validate branch feat/123-add-login
+git-guardian validate commit -m 'feat: add login'
+git-guardian branch suggest 'ABC-123 add login'   # → feat/123-add-login, ...
 ```
 
-Native branch operations are checked when Git invokes the installed reference hook. The helper `git-guardian branch create feature/ABC-123-add-login --from develop` validates and runs `git switch -c`; it also switches the current branch.
+Native branch operations are checked when Git invokes the installed reference hook. The helper `git-guardian branch create feat/123-add-login --from develop` validates and runs `git switch -c`; it also switches the current branch.
 
-On rejection, correct the input and retry. Suggestions are candidates; custom regexes can reject them, so run the explicit validator before using one. Existing branches are not retroactively rejected by a pre-commit hook because this version has none.
+On rejection, the message shows the format, what each placeholder means, an example and up to three suggestions. A suggestion may still contain a placeholder such as `<number>` when it could not be guessed from the input; replace it before use. Existing branches are not retroactively rejected by a pre-commit hook because this version has none.
 
 The commit hook validates the message and does not rewrite it. Default Merge/Revert prefix exemptions are enabled; disable them in YAML if your policy needs checks on those subjects. These are prefix-based exemptions, not verification that Git generated the message.
 
@@ -242,26 +261,24 @@ File: `.git-guardian.yml` at Git root. Defaults are in the example (`git-guardia
 | --- | --- | --- |
 | `version` | 1 / number | Must equal 1 |
 | `branch.enabled` | true / boolean | Enable branch validation |
-| `branch.pattern` | See example / string | Node regex; anchors are user's responsibility |
-| `branch.protected` | main,master,develop,development,staging,production / CSV | Names accepted without regex; does not prevent commits/pushes |
-| `branch.example` | feature/ABC-123-add-login / string | Diagnostic example, not validated against pattern |
-| `branch.suggestionPrefixes` | feature,fix,hotfix,chore,docs,refactor,test,release / CSV | Prefixes for suggestions |
+| `branch.format` | `<type>/<number>-<description>` / string | Readable format; see the [user guide](USAGE.md#choose-conventions). Whole name must match |
+| `branch.types` | feat,chore,bugfix,task / CSV | Values allowed for `<type>`; lowercase letters, numbers, hyphens |
+| `branch.protected` | main,master,develop,development,staging,production / CSV | Names always accepted; does not prevent commits/pushes |
 | `branch.suggestions` | true / boolean | Include suggestions on validation failure |
 | `commit.enabled` | true / boolean | Enable message validation |
-| `commit.pattern` | See example / string | Regex applied to normalized first line |
-| `commit.example` | feat(auth): add passkey login / string | Diagnostic example |
-| `commit.suggestionTypes` | feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert / CSV | Suggested message types |
-| `commit.maxSubjectLength` | 72 / positive integer | Used in suggestions; current total-line guard uses this value + 32 |
+| `commit.format` | `<type>: <description>` / string | Readable format for the first line. Whole line must match |
+| `commit.types` | feat,chore,bugfix,task / CSV | Values allowed for `<type>` |
+| `commit.maxSubjectLength` | 72 / positive integer | Maximum first-line length; suggestions are shortened to fit |
 | `commit.allowMergeCommits` | true / boolean | Accept normalized text beginning with Merge word |
 | `commit.allowRevertCommits` | true / boolean | Accept normalized text beginning with Revert word |
 | `hooks.referenceTransaction` | true / boolean | Install reference hook when branch validation enabled |
 | `hooks.commitMsg` | true / boolean | Install message hook when commit validation enabled |
 
-Missing or wrong-typed fields fall back to defaults. Unknown keys are ignored; duplicate parsed keys overwrite earlier ones. Validation checks schema version, regex compilation, positive integer maxSubjectLength and nonempty CSV sets. It does not impose a strict schema, validate examples or enforce Git syntax on explicit string validation. Native Git still validates its own ref syntax.
+Missing or wrong-typed fields fall back to defaults. Unknown keys are ignored; duplicate parsed keys overwrite earlier ones. The 0.1.x fields `pattern`, `example`, `suggestionPrefixes` and `suggestionTypes` are rejected with migration instructions. Validation checks schema version, that formats use known placeholders with balanced brackets, valid type names, positive integer maxSubjectLength and nonempty CSV sets. It does not impose a strict schema, validate examples or enforce Git syntax on explicit string validation. Native Git still validates its own ref syntax.
 
 ## Commit semantics
 
-The validator trims the whole message before taking its first line, so whitespace is normalized rather than explicitly rejected. Prefix exemptions run before length/pattern checks. Length uses JavaScript string length (UTF-16 code units), not Unicode code points. The current explicit line limit is maxSubjectLength + 32; the default regex separately limits the description to 1–72 characters. Do not document this as a strict 72-character total-subject limit. Body/footers are otherwise not checked. No file rewrite occurs.
+The validator trims the whole message before taking its first line, so whitespace is normalized rather than explicitly rejected. Lines starting with `#` (Git's editor comments) are ignored. Prefix exemptions run before length/format checks. The first line must be at most maxSubjectLength characters (JavaScript string length, i.e. UTF-16 code units) and match commit.format. Body/footers are not checked. No file rewrite occurs.
 
 ## Hooks and runtime lookup
 
@@ -276,7 +293,8 @@ Owned-hook detection uses the text marker `# git-guardian-managed-hook v1`, not 
 | Symptom | Check and action |
 | --- | --- |
 | Missing config | Run init in correct repo or restore `.git-guardian.yml`; old `.gitguardian.json` is not loaded |
-| Suggestions fail custom rule | Validate candidates explicitly and adjust pattern/prefixes |
+| Suggestion contains `<number>` or another placeholder | The value could not be found in your input; fill it in |
+| "uses fields from an older version" | Replace regex `pattern` fields with `format` and `types`, or delete the config and rerun init |
 | Doctor succeeds but hook absent | Read warnings; doctor is not a strict installation gate |
 | Invalid branch passes CI | Use `validate branch`, not bare validate |
 | Existing hook/backups conflict | Preserve both and reconcile; avoid blind force |
@@ -296,7 +314,6 @@ These findings come from reading the supplied source. They are documented here r
 | Area | Current behavior | Follow-up |
 | --- | --- | --- |
 | Config strictness | Defaults replace wrong/missing types; unknown keys ignored; duplicate keys overwrite | Reject invalid types, unknown and duplicate fields |
-| Regex scope | Ordinary RegExp.test; no automatic anchors | Validate complete strings or document explicit anchors |
 | Suggestions | Candidates not revalidated against custom policy/Git syntax | Filter candidates and validate diagnostic examples |
 | Commit length | Guard is maxSubjectLength + 32; JS UTF-16 length | Define and implement precise total-subject semantics |
 | Merge/revert | Prefix-based bypass enabled by default | Document or implement structured exemptions |

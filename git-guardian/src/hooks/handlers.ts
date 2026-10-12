@@ -1,21 +1,33 @@
 import { readFileSync } from 'node:fs';
 import { loadConfig } from '../config/load.js';
-import { getRepoRoot, refExists } from '../core/git.js';
+import { getRepoRoot, isMerging, refExists } from '../core/git.js';
 import { ui } from '../core/log.js';
 import { validateBranchName } from '../validation/branch.js';
 import { validateCommitMessage } from '../validation/commit.js';
+import { explainSecrets, explainViolation } from '../validation/explain.js';
+import { splitCsv } from '../config/validate.js';
+import { scanMessage, scanStaged } from '../secrets/scan.js';
 
 export function handleCommitMsg(messageFile: string, cwd = process.cwd()): number {
   const repoRoot = getRepoRoot(cwd);
   const config = loadConfig(repoRoot);
   const message = readFileSync(messageFile, 'utf8');
+
+  if (config.secrets.enabled && !isMerging(repoRoot)) {
+    // A merge brings in changes already committed elsewhere; scan those where they were written.
+    const findings = [...scanStaged(repoRoot, { allow: splitCsv(config.secrets.allow) }), ...scanMessage(message)];
+    if (findings.length) {
+      ui.error('Commit blocked by Git Guardian: possible secrets found.');
+      console.error(explainSecrets(findings));
+      return 1;
+    }
+  }
+
   const result = validateCommitMessage(message, config.commit);
   if (result.valid) return 0;
 
   ui.error('Commit blocked by Git Guardian.');
-  if (result.reason) console.error(result.reason);
-  console.error(`Expected example: ${config.commit.example}`);
-  printSuggestions(result.suggestions);
+  console.error(explainViolation('commit', config, result));
   return 1;
 }
 
@@ -68,19 +80,11 @@ export function handleReferenceTransaction(
 
   for (const violation of violations) {
     ui.error(`Branch creation blocked: ${violation.branch}`);
-    if (violation.reason) console.error(violation.reason);
-    console.error(`Expected example: ${config.branch.example}`);
-    printSuggestions(violation.suggestions);
+    console.error(explainViolation('branch', config, violation));
   }
   return 1;
 }
 
 function isZeroOid(value: string): boolean {
   return /^0+$/.test(value);
-}
-
-function printSuggestions(suggestions: string[]): void {
-  if (!suggestions.length) return;
-  console.error('Suggestions:');
-  for (const item of suggestions) console.error(`  - ${item}`);
 }

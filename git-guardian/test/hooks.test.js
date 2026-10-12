@@ -53,7 +53,7 @@ test('reference-transaction hook blocks invalid native branch creation', () => {
   assert.match(invalid.stderr + invalid.stdout, /Branch creation blocked/);
   assert.equal(git(root, ['show-ref', '--verify', '--quiet', 'refs/heads/Bad_Branch']).status, 1);
 
-  const valid = git(root, ['switch', '-c', 'feature/ABC-123-add-login'], env);
+  const valid = git(root, ['switch', '-c', 'feat/123-add-login'], env);
   assert.equal(valid.status, 0, valid.stdout + valid.stderr);
 });
 
@@ -76,7 +76,7 @@ test('reference-transaction hook blocks invalid branch creation in an unborn rep
   assert.equal(head.status, 0);
   assert.notEqual(head.stdout.trim(), 'new-branch');
 
-  const valid = git(root, ['checkout', '-b', 'feature/ABC-123-add-login'], env);
+  const valid = git(root, ['checkout', '-b', 'feat/123-add-login'], env);
   assert.equal(valid.status, 0, valid.stdout + valid.stderr);
 });
 

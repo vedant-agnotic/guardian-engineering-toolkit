@@ -6,7 +6,7 @@ import { hooksStatus } from '../hooks/install.js';
 
 export function doctorCommand(): void {
   const repoRoot = getRepoRoot();
-  loadConfig(repoRoot);
+  const config = loadConfig(repoRoot);
   ui.title('Git Guardian doctor');
   ui.success(`Repository: ${repoRoot}`);
   ui.success(`Config: ${configPath(repoRoot)}`);
@@ -14,6 +14,9 @@ export function doctorCommand(): void {
   const version = gitVersion();
   if (supportsReferenceTransaction(version)) ui.success(`Git ${version} supports branch transaction guarding.`);
   else ui.warn(`Git ${version} is older than 2.28; upgrade Git for branch creation blocking.`);
+
+  if (config.secrets.enabled) ui.success('Secret scanning is on for commits.');
+  else ui.warn('Secret scanning is off (secrets.enabled: false).');
 
   const dir = hooksDirectory(repoRoot);
   ui.info(`Hooks directory: ${dir}`);

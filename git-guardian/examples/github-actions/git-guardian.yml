@@ -1,0 +1,67 @@
+# Git Guardian checks for pull requests.
+# Copy to .github/workflows/git-guardian.yml in the project that uses Git Guardian.
+#
+# It checks, on every pull request:
+#   1. the source branch name           (git-guardian validate branch)
+#   2. every commit message in the PR   (git-guardian validate commits)
+#   3. the PR title, which becomes the commit message on a squash merge
+#   4. the lines the PR adds, for secrets (git-guardian scan --range)
+# Local hooks can be skipped with --no-verify; this job cannot. Make it a required check.
+
+name: git-guardian
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited] # "edited" re-checks a renamed PR title
+
+permissions:
+  contents: read
+
+jobs:
+  conventions:
+    runs-on: ubuntu-latest
+    # Bot branches (dependabot/..., renovate/...) use their own naming; skip them.
+    if: ${{ !startsWith(github.head_ref, 'dependabot/') && !startsWith(github.head_ref, 'renovate/') }}
+    env:
+      FORCE_COLOR: '1' # colours in the Actions log
+      # Event values are passed as environment variables, never pasted into the script,
+      # so a branch name or PR title cannot inject shell commands.
+      BRANCH: ${{ github.head_ref }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v4 # pin to a full commit SHA in production
+        with:
+          fetch-depth: 0 # the commit range needs the base branch history
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Choose ONE way to get the CLI:
+      # a) It is a devDependency of this project (recommended for Node projects):
+      - name: Install dependencies
+        id: install
+        run: npm ci
+      # b) Once published to npm, without touching package.json (any language):
+      #   - run: npm install --global <package-name>@<version>
+      #   and replace "npx git-guardian" below with "git-guardian".
+
+      # Each check runs even if an earlier one failed, so one run reports every problem.
+
+      - name: Branch name
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npx --no git-guardian validate branch "$BRANCH"
+
+      - name: Commit messages
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npx --no git-guardian validate commits "$BASE_SHA..$HEAD_SHA"
+
+      - name: Pull request title (used as the commit message on squash merge)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npx --no git-guardian validate commit -m "$PR_TITLE"
+
+      - name: Secrets in added lines
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npx --no git-guardian scan --range "$BASE_SHA..$HEAD_SHA"

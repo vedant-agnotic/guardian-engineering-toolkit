@@ -1,0 +1,14 @@
+# CI Guardian configuration. Commands are argv arrays; no shell is involved.
+version: 1
+project:
+  type: generic
+  root: .
+provider: github-actions
+checks:
+  - id: numbers
+    command: ["1"]
+    timeoutSeconds: 5
+execution:
+  failFast: true
+report:
+  path: .guardian/ci/report.json

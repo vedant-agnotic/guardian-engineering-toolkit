@@ -1,3 +1,9 @@
-# Implementation tests
+# Tests
 
-No Guardian behavior tests exist in this documentation scaffold. Use the [test plan](../docs/TESTING.md) to create unit, integration and packaged-consumer tests as behavior is implemented. The documentation checker is an artifact integrity check only.
+`npm test` builds `dist/` and runs `node --test tests/*.test.js`.
+
+- `yaml.test.js`: restricted YAML parser.
+- `config.test.js`: schema, path and symlink validation, serialization.
+- `cli.test.js`: the built CLI end to end in temporary Git repositories, including timeouts, process trees and SIGINT.
+
+See the [test plan](../docs/TESTING.md) for coverage and gaps.

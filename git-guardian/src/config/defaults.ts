@@ -1,30 +1,30 @@
 import type { GitGuardianConfig } from './types.js';
 
-export const DEFAULT_BRANCH_PATTERN =
-  '^(feature|fix|hotfix|chore|docs|refactor|test|release)/([A-Z][A-Z0-9]+-[0-9]+-)?[a-z0-9]+(?:-[a-z0-9]+)*$';
-
-export const DEFAULT_COMMIT_PATTERN =
-  '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\([a-z0-9._-]+\\))?!?: .{1,72}$';
+export const DEFAULT_BRANCH_FORMAT = '<type>/<number>-<description>';
+export const DEFAULT_COMMIT_FORMAT = '<type>: <description>';
+export const DEFAULT_TYPES = 'feat,chore,bugfix,task';
 
 export function createDefaultConfig(): GitGuardianConfig {
   return {
     version: 1,
     branch: {
       enabled: true,
-      pattern: DEFAULT_BRANCH_PATTERN,
+      format: DEFAULT_BRANCH_FORMAT,
+      types: DEFAULT_TYPES,
       protected: 'main,master,develop,development,staging,production',
-      example: 'feature/ABC-123-add-login',
-      suggestionPrefixes: 'feature,fix,hotfix,chore,docs,refactor,test,release',
       suggestions: true,
     },
     commit: {
       enabled: true,
-      pattern: DEFAULT_COMMIT_PATTERN,
-      example: 'feat(auth): add passkey login',
-      suggestionTypes: 'feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert',
+      format: DEFAULT_COMMIT_FORMAT,
+      types: DEFAULT_TYPES,
       maxSubjectLength: 72,
       allowMergeCommits: true,
       allowRevertCommits: true,
+    },
+    secrets: {
+      enabled: true,
+      allow: '',
     },
     hooks: {
       referenceTransaction: true,

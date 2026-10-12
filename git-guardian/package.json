@@ -1,8 +1,17 @@
 {
   "name": "git-guardian",
-  "version": "0.1.1",
+  "version": "0.0.1",
   "description": "Project-local Git policy enforcement for branch names and commit messages.",
   "type": "module",
+  "author": "Agnotic",
+  "homepage": "https://github.com/vedant-agnotic/guardian-engineering-toolkit/tree/main/git-guardian#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vedant-agnotic/guardian-engineering-toolkit.git",
+    "directory": "git-guardian"
+  },
+  "bugs": { "url": "https://github.com/vedant-agnotic/guardian-engineering-toolkit/issues" },
+  "publishConfig": { "access": "public", "provenance": true },
   "bin": {
     "git-guardian": "dist/cli.js"
   },
@@ -14,6 +23,7 @@
     "examples"
   ],
   "scripts": {
+    "prepublishOnly": "npm test",
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test test/*.test.js",
     "check": "npm test",

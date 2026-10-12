@@ -1,20 +1,30 @@
 export interface BranchConfig {
   enabled: boolean;
-  pattern: string;
+  /** Readable format, e.g. "<type>/<number>-<description>". */
+  format: string;
+  /** Comma-separated values allowed for <type>. */
+  types: string;
+  /** Comma-separated branch names that are always allowed, e.g. main. */
   protected: string;
-  example: string;
-  suggestionPrefixes: string;
   suggestions: boolean;
 }
 
 export interface CommitConfig {
   enabled: boolean;
-  pattern: string;
-  example: string;
-  suggestionTypes: string;
+  /** Readable format for the first line, e.g. "<type>: <description>". */
+  format: string;
+  /** Comma-separated values allowed for <type>. */
+  types: string;
   maxSubjectLength: number;
   allowMergeCommits: boolean;
   allowRevertCommits: boolean;
+}
+
+export interface SecretsConfig {
+  /** Block commits whose staged changes or message contain likely secrets. */
+  enabled: boolean;
+  /** Comma-separated path globs never scanned, e.g. "test/fixtures/**". */
+  allow: string;
 }
 
 export interface HooksConfig {
@@ -26,5 +36,6 @@ export interface GitGuardianConfig {
   version: number;
   branch: BranchConfig;
   commit: CommitConfig;
+  secrets: SecretsConfig;
   hooks: HooksConfig;
 }

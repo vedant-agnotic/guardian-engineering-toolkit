@@ -1,10 +1,16 @@
 import type { BranchConfig } from '../config/types.js';
 import { splitCsv } from '../config/validate.js';
+import { compileFormat, fillFormat, leadingTypeCandidate, matchesFormat, type CompiledFormat } from './template.js';
+import { extractParts, resolveType, typeOrder } from './parts.js';
 
 export interface ValidationResult {
   valid: boolean;
   reason?: string;
   suggestions: string[];
+}
+
+export function compileBranchFormat(config: BranchConfig): CompiledFormat {
+  return compileFormat(config.format, 'branch', splitCsv(config.types));
 }
 
 export function isProtectedBranch(name: string, config: BranchConfig): boolean {
@@ -15,35 +21,29 @@ export function validateBranchName(name: string, config: BranchConfig): Validati
   if (!config.enabled) return { valid: true, suggestions: [] };
   if (isProtectedBranch(name, config)) return { valid: true, suggestions: [] };
 
-  const regex = new RegExp(config.pattern);
-  if (regex.test(name)) return { valid: true, suggestions: [] };
+  const compiled = compileBranchFormat(config);
+  if (matchesFormat(compiled, name)) return { valid: true, suggestions: [] };
 
-  const suggestions = config.suggestions ? suggestBranchNames(name, config) : [];
-  return {
-    valid: false,
-    reason: `Branch \"${name}\" does not match ${config.pattern}`,
-    suggestions,
-  };
+  let reason = `Branch "${name}" doesn't follow the format ${config.format}`;
+  const type = leadingTypeCandidate(compiled, name);
+  if (type !== null && !compiled.types.includes(type)) reason += `\n"${type}" is not an allowed type.`;
+
+  return { valid: false, reason, suggestions: config.suggestions ? suggestBranchNames(name, config) : [] };
 }
 
+/** Builds names from free text such as "ABC-42 Fix login crash". Unknown parts stay as <placeholders>. */
 export function suggestBranchNames(input: string, config: BranchConfig): string[] {
-  const prefixes = splitCsv(config.suggestionPrefixes);
-  const knownPrefix = prefixes.find((prefix) => input.toLowerCase().startsWith(`${prefix.toLowerCase()}/`));
-  const rawBody = knownPrefix ? input.slice(knownPrefix.length + 1) : input;
-  const ticket = extractTicket(rawBody);
-  let body = rawBody.replace(/[A-Z][A-Z0-9]+-\d+/i, ' ');
-  body = slugify(body);
+  const compiled = compileBranchFormat(config);
+  const parts = extractParts(input, compiled);
 
-  const base = [ticket, body].filter(Boolean).join('-') || 'describe-change';
-  const preferred = knownPrefix ?? prefixes[0] ?? 'feature';
-  const candidates = [preferred, ...prefixes.filter((item) => item !== preferred)].slice(0, 3);
+  const leading = /^([A-Za-z]+)[/:\s_-]/.exec(parts.rest.trim());
+  const preferred = leading ? resolveType(leading[1], compiled.types) : null;
+  const words = preferred ? parts.rest.trim().slice(leading![1].length) : parts.rest;
+  const description = slugify(words) || undefined;
 
-  return candidates.map((prefix) => `${prefix}/${base}`);
-}
-
-function extractTicket(value: string): string | null {
-  const match = /\b([A-Za-z][A-Za-z0-9]+-\d+)\b/.exec(value);
-  return match ? match[1].toUpperCase() : null;
+  return typeOrder(compiled.types, preferred).map((type) =>
+    fillFormat(compiled, { type, number: parts.number, ticket: parts.ticket, scope: parts.scope, description }),
+  );
 }
 
 function slugify(value: string): string {

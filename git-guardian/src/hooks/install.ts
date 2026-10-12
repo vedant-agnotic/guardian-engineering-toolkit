@@ -23,7 +23,7 @@ export function installHooks(repoRoot: string, config: GitGuardianConfig, force 
     skipped.push('reference-transaction');
   }
 
-  if (config.hooks.commitMsg && config.commit.enabled) {
+  if (config.hooks.commitMsg && (config.commit.enabled || config.secrets.enabled)) {
     installOne(hooksDir, 'commit-msg', commitMsgHookScript(), force);
     installed.push('commit-msg');
   } else {

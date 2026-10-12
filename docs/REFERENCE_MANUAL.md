@@ -6,7 +6,7 @@ This manual describes the supplied source, not the superseded JSON/three-hook dr
 
 | Command | Behavior |
 | --- | --- |
-| `init [--yes|-y] [--force]` | Create YAML; prompt on TTY unless yes; optionally install hooks; force replaces config |
+| `init [--yes|-y] [--force] [--no-ci]` | Create YAML; prompt on TTY unless yes; optionally install hooks; force replaces config. The last prompt offers to set up CI Guardian (installs it and runs `ci-guardian init --with-git-guardian`); `--no-ci` or `--yes` skips it |
 | `install [--force]` | Load config and install enabled hooks in effective directory |
 | `uninstall` | Remove marked hooks and restore backups; inspect edits first |
 | `doctor` | Load config; report Git version, effective hooks path, marker and executability |
@@ -14,6 +14,9 @@ This manual describes the supplied source, not the superseded JSON/three-hook dr
 | `validate branch [name]` | Fail for invalid explicit/current branch; explicit name required in detached HEAD |
 | `validate commit --message <text>` / `-m` | Validate supplied message |
 | `validate commit --file <path>` / `-f` | Read UTF-8 file and validate; file takes precedence when both given |
+| `validate commits <base>..<head>` | Validate every commit message in the range (git log base..head); exit 1 if any fails; needs both commits locally |
+| `scan [--message <text>]` | Scan staged added lines (and an optional message) for secrets; exit 1 on findings |
+| `scan --range <base>..<head>` | Scan lines added since the branch split (git diff base...head); for CI |
 | `branch create <name> [--from <ref>]` | Validate, reject existing branch, then run git switch -c |
 | `branch suggest <description>` | Print candidate names; does not create anything |
 | `hook commit-msg <file>` | Internal message-hook entry point |
@@ -31,26 +34,26 @@ File: `.git-guardian.yml` at Git root. Defaults are in [the example](../examples
 | --- | --- | --- |
 | `version` | 1 / number | Must equal 1 |
 | `branch.enabled` | true / boolean | Enable branch validation |
-| `branch.pattern` | See example / string | Node regex; anchors are user's responsibility |
-| `branch.protected` | main,master,develop,development,staging,production / CSV | Names accepted without regex; does not prevent commits/pushes |
-| `branch.example` | feature/ABC-123-add-login / string | Diagnostic example, not validated against pattern |
-| `branch.suggestionPrefixes` | feature,fix,hotfix,chore,docs,refactor,test,release / CSV | Prefixes for suggestions |
+| `branch.format` | `<type>/<number>-<description>` / string | Readable format; see the [user guide](USAGE.md#choose-conventions). Whole name must match |
+| `branch.types` | feat,chore,bugfix,task / CSV | Values allowed for `<type>`; lowercase letters, numbers, hyphens |
+| `branch.protected` | main,master,develop,development,staging,production / CSV | Names always accepted; does not prevent commits/pushes |
 | `branch.suggestions` | true / boolean | Include suggestions on validation failure |
 | `commit.enabled` | true / boolean | Enable message validation |
-| `commit.pattern` | See example / string | Regex applied to normalized first line |
-| `commit.example` | feat(auth): add passkey login / string | Diagnostic example |
-| `commit.suggestionTypes` | feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert / CSV | Suggested message types |
-| `commit.maxSubjectLength` | 72 / positive integer | Used in suggestions; current total-line guard uses this value + 32 |
+| `commit.format` | `<type>: <description>` / string | Readable format for the first line. Whole line must match |
+| `commit.types` | feat,chore,bugfix,task / CSV | Values allowed for `<type>` |
+| `commit.maxSubjectLength` | 72 / positive integer | Maximum first-line length; suggestions are shortened to fit |
 | `commit.allowMergeCommits` | true / boolean | Accept normalized text beginning with Merge word |
 | `commit.allowRevertCommits` | true / boolean | Accept normalized text beginning with Revert word |
+| `secrets.enabled` | true / boolean | Scan staged added lines and the message of each commit for likely secrets |
+| `secrets.allow` | empty / CSV of path globs | Paths never scanned; `*` within a folder, `**` across folders, e.g. `test/fixtures/**` |
 | `hooks.referenceTransaction` | true / boolean | Install reference hook when branch validation enabled |
-| `hooks.commitMsg` | true / boolean | Install message hook when commit validation enabled |
+| `hooks.commitMsg` | true / boolean | Install the commit-msg hook when commit validation or secret scanning is enabled |
 
-Missing or wrong-typed fields fall back to defaults. Unknown keys are ignored; duplicate parsed keys overwrite earlier ones. Validation checks schema version, regex compilation, positive integer maxSubjectLength and nonempty CSV sets. It does not impose a strict schema, validate examples or enforce Git syntax on explicit string validation. Native Git still validates its own ref syntax.
+Missing or wrong-typed fields fall back to defaults. Unknown keys are ignored; duplicate parsed keys overwrite earlier ones. The 0.1.x fields `pattern`, `example`, `suggestionPrefixes` and `suggestionTypes` are rejected with migration instructions. Validation checks schema version, that formats use known placeholders with balanced brackets, valid type names, positive integer maxSubjectLength and nonempty CSV sets. It does not impose a strict schema, validate examples or enforce Git syntax on explicit string validation. Native Git still validates its own ref syntax.
 
 ## Commit semantics
 
-The validator trims the whole message before taking its first line, so whitespace is normalized rather than explicitly rejected. Prefix exemptions run before length/pattern checks. Length uses JavaScript string length (UTF-16 code units), not Unicode code points. The current explicit line limit is maxSubjectLength + 32; the default regex separately limits the description to 1–72 characters. Do not document this as a strict 72-character total-subject limit. Body/footers are otherwise not checked. No file rewrite occurs.
+The validator trims the whole message before taking its first line, so whitespace is normalized rather than explicitly rejected. Lines starting with `#` (Git's editor comments) are ignored. Prefix exemptions run before length/format checks. The first line must be at most maxSubjectLength characters (JavaScript string length, i.e. UTF-16 code units) and match commit.format. Body/footers are not checked. No file rewrite occurs.
 
 ## Hooks and runtime lookup
 
@@ -65,9 +68,13 @@ Owned-hook detection uses the text marker `# git-guardian-managed-hook v1`, not 
 | Symptom | Check and action |
 | --- | --- |
 | Missing config | Run init in correct repo or restore `.git-guardian.yml`; old `.gitguardian.json` is not loaded |
-| Suggestions fail custom rule | Validate candidates explicitly and adjust pattern/prefixes |
+| "possible secrets found" on a false positive | Add `git-guardian:allow-secret` in a comment on the line, or add the path to `secrets.allow` |
+| A real secret was blocked | Remove it and use an environment variable; if it was ever pushed anywhere, revoke and rotate it |
+| Suggestion contains `<number>` or another placeholder | The value could not be found in your input; fill it in |
+| "uses fields from an older version" | Replace regex `pattern` fields with `format` and `types`, or delete the config and rerun init |
 | Doctor succeeds but hook absent | Read warnings; doctor is not a strict installation gate |
-| Invalid branch passes CI | Use `validate branch`, not bare validate |
+| Invalid branch passes CI | Use `validate branch "$BRANCH"` with the PR head ref, not bare validate |
+| "is not available in this clone" in CI | Set `fetch-depth: 0` on actions/checkout so the base commit exists |
 | Existing hook/backups conflict | Preserve both and reconcile; avoid blind force |
 | CLI not found in GUI | Configure Node/PATH or local install used by that client |
 | Invalid branch creation not blocked | Verify effective hook, Git version and client implementation; test ordinary and unborn repos separately |

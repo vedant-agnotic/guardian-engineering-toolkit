@@ -1,5 +1,7 @@
 import type { CommitConfig } from '../config/types.js';
 import { splitCsv } from '../config/validate.js';
+import { compileFormat, fillFormat, leadingTypeCandidate, matchesFormat, type CompiledFormat } from './template.js';
+import { extractParts, resolveType, typeOrder } from './parts.js';
 
 export interface CommitValidationResult {
   valid: boolean;
@@ -7,52 +9,71 @@ export interface CommitValidationResult {
   suggestions: string[];
 }
 
+export function compileCommitFormat(config: CommitConfig): CompiledFormat {
+  return compileFormat(config.format, 'commit', splitCsv(config.types));
+}
+
 export function validateCommitMessage(message: string, config: CommitConfig): CommitValidationResult {
   if (!config.enabled) return { valid: true, suggestions: [] };
 
-  const normalized = message.trim();
+  const normalized = message
+    .split(/\r?\n/)
+    .filter((line) => !line.startsWith('#'))
+    .join('\n')
+    .trim();
   if (config.allowMergeCommits && /^Merge\b/.test(normalized)) return { valid: true, suggestions: [] };
   if (config.allowRevertCommits && /^Revert\b/.test(normalized)) return { valid: true, suggestions: [] };
 
-  const firstLine = normalized.split(/\r?\n/, 1)[0] ?? '';
-  if (firstLine.length > config.maxSubjectLength + 32) {
-    return {
-      valid: false,
-      reason: `Commit subject is too long (${firstLine.length} characters).`,
-      suggestions: suggestCommitMessages(firstLine, config),
-    };
+  const subject = normalized.split(/\r?\n/, 1)[0] ?? '';
+  if (!subject) {
+    return { valid: false, reason: 'Commit message is empty.', suggestions: [] };
   }
 
-  const regex = new RegExp(config.pattern);
-  if (regex.test(firstLine)) return { valid: true, suggestions: [] };
+  const compiled = compileCommitFormat(config);
+  if (subject.length > config.maxSubjectLength) {
+    return {
+      valid: false,
+      reason: `Commit subject is too long: ${subject.length} characters (maximum ${config.maxSubjectLength}).`,
+      suggestions: suggestCommitMessages(subject, config),
+    };
+  }
+  if (matchesFormat(compiled, subject)) return { valid: true, suggestions: [] };
 
-  return {
-    valid: false,
-    reason: `Commit message does not match ${config.pattern}`,
-    suggestions: suggestCommitMessages(firstLine, config),
-  };
+  let reason = `Commit message "${subject}" doesn't follow the format ${config.format}`;
+  const type = leadingTypeCandidate(compiled, subject);
+  if (type !== null && /^[A-Za-z]+$/.test(type) && !compiled.types.includes(type)) {
+    reason += `\n"${type}" is not an allowed type.`;
+  }
+  return { valid: false, reason, suggestions: suggestCommitMessages(subject, config) };
 }
 
 export function suggestCommitMessages(input: string, config: CommitConfig): string[] {
-  const types = splitCsv(config.suggestionTypes);
-  const stripped = input
-    .replace(/^[a-z]+(?:\([^)]*\))?!?:\s*/i, '')
-    .replace(/^[-:]+\s*/, '')
-    .trim();
+  const compiled = compileCommitFormat(config);
+  const parts = extractParts(input, compiled);
 
-  const subject = normalizeSubject(stripped || 'describe change', config.maxSubjectLength);
-  const candidates = ['feat', 'fix', 'chore']
-    .filter((type) => types.includes(type))
-    .concat(types)
-    .filter((value, index, array) => array.indexOf(value) === index)
-    .slice(0, 3);
+  let text = parts.rest.trim();
+  let preferred: string | null = null;
+  let scope: string | undefined;
+  const prefix = /^([A-Za-z]+)(?:\(([^)]*)\))?!?\s*:\s*/.exec(text);
+  if (prefix) {
+    preferred = resolveType(prefix[1], compiled.types);
+    scope = prefix[2]?.trim().toLowerCase() || undefined;
+    text = text.slice(prefix[0].length);
+  }
 
-  return candidates.map((type) => `${type}: ${subject}`);
+  const types = typeOrder(compiled.types, preferred);
+  return types.map((type) => {
+    const base = { type, scope, number: parts.number, ticket: parts.ticket };
+    const room = config.maxSubjectLength - fillFormat(compiled, { ...base, description: '' }).length;
+    const description = normalizeDescription(text || 'describe change', room);
+    return fillFormat(compiled, { ...base, description });
+  });
 }
 
-function normalizeSubject(value: string, max: number): string {
-  const sentence = value.charAt(0).toLowerCase() + value.slice(1);
-  const noPeriod = sentence.replace(/[.!]+$/, '');
-  const allowed = Math.max(8, Math.min(max, 72));
-  return noPeriod.length <= allowed ? noPeriod : noPeriod.slice(0, allowed - 1).trimEnd();
+function normalizeDescription(value: string, max: number): string {
+  const sentence = value.replace(/\s+/g, ' ').trim();
+  const lowered = sentence.charAt(0).toLowerCase() + sentence.slice(1);
+  const noPeriod = lowered.replace(/[.!]+$/, '');
+  const allowed = Math.max(8, max);
+  return noPeriod.length <= allowed ? noPeriod : noPeriod.slice(0, allowed).trimEnd();
 }

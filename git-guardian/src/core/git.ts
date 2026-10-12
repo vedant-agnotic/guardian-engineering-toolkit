@@ -51,3 +51,8 @@ export function hooksDirectory(repoRoot: string): string {
   if (!existsSync(absolute)) return absolute;
   return absolute;
 }
+
+/** True while a merge is being concluded (MERGE_HEAD exists). */
+export function isMerging(repoRoot: string): boolean {
+  return run('git', ['rev-parse', '-q', '--verify', 'MERGE_HEAD'], { cwd: repoRoot }).status === 0;
+}

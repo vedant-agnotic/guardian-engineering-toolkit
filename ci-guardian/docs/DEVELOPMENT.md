@@ -1,33 +1,36 @@
 # Package development
 
-> Documentation baseline: 0.1.0-draft · 2 October 2026.
-> This is a documentation-first project scaffold, not a working or published Guardian CLI.
-> Package commands below specify intended behavior unless explicitly labelled as available now.
-> Names, registry scope, repository owner, license and release versions are not finalized.
-> Do not install a similarly named public package assuming it belongs to this toolkit.
+> v0.1.0-alpha.0 · C1 and C2 are implemented; workflow generation (C3) and the Git Guardian adapter (C4) are not.
 
-## Work on this scaffold now
+## Build and test
 
-Use Node.js 22 or newer as the proposed development baseline. Python 3 is needed only for the included documentation checker. No dependency installation is needed to read or check this scaffold.
+Node.js 20 or newer is required, matching Git Guardian. Python 3 is needed only for the documentation checker. The only dependencies are exact-pinned development dependencies (TypeScript and Node type definitions); the CLI has no runtime dependencies.
 
 ```bash
-python3 scripts/check_docs.py
-npm run docs:check
+npm install          # then npm ci once the lockfile is the source of truth
+npm test             # tsc build, then node --test tests/*.test.js
+npm run docs:check   # required documents, local links and JSON syntax
+npm pack             # local tarball; does not publish
 ```
 
-Both commands perform the same documentation check. The checker validates local Markdown file links, JSON syntax and required project documents; it does not test a Guardian implementation or validate YAML schemas. There is deliberately no `npm test`, `build`, executable, or deployment script pretending an implementation exists.
+Tests import `dist/`, so `npm test` always rebuilds first. Integration tests create temporary Git repositories and run the real CLI with small Node scripts as checks, including timeouts, process trees and SIGINT.
 
-## Establish the implementation toolchain
+## Verify a packed build
 
-1. Keep this project as its own repository; no sibling Guardian checkout is required.
-2. Add TypeScript as an exact, reviewed development dependency and commit the generated package lock.
-3. Add strict compilation, an actual CLI parser and a schema validator. Choose and record dependency versions in an ADR before publishing; this scaffold does not prescribe floating versions.
-4. Compile `src/cli.ts` to `dist/cli.js`. Add an executable shebang and a `bin` entry only when the entry point works.
-5. Use Node's test runner or one selected test framework. Add scripts for build, typecheck, unit, integration and package smoke tests as they become real.
-6. Implement the first milestone in ROADMAP.md. Keep help, configuration examples and the reference manual synchronized with the implementation.
-7. Generate a lockfile and then use `npm ci` for reproducible subsequent installs. Do not document `npm ci` against this initial scaffold, which has no dependencies or lockfile.
+Verification sequence: clean checkout → install → `npm test` → `npm pack` → install the tarball into an isolated Git repository → `init`, `validate`, `doctor`, `run` smoke tests. The [Readme](../Readme.md#try-it-locally) has the consumer steps and a playground configuration.
 
-Proposed implementation verification sequence, after the corresponding scripts exist: clean checkout → locked install → typecheck → unit tests → build → integration tests → `npm pack --dry-run` → install actual tarball into an isolated fixture → command smoke tests.
+## Source layout
+
+| Path | Responsibility |
+| --- | --- |
+| `src/config/` | Restricted YAML parser, schema and path validation, loader, defaults and serialization |
+| `src/planner/` | Immutable ordered execution plan; check selection |
+| `src/runner/` | Child processes in their own process group, timeouts, cancellation, normalized results |
+| `src/reporters/` | Terminal summary and atomic JSON report |
+| `src/commands/` | `init`, `validate`, `doctor`, `run` |
+| `src/core/` | Exit codes, Git queries, executable resolution, terminal output |
+
+Presets (`src/presets/`), providers and the Git Guardian integration are not created yet; add them with their milestones.
 
 ## Coding conventions
 
@@ -43,7 +46,7 @@ Review checklist: contract matches help; files owned by users survive; errors id
 
 ## Package publication
 
-The scaffold sets `private: true` and `license: UNLICENSED` to prevent accidental publication and avoid granting an unchosen license. These are temporary release controls, not a licensing recommendation. Before the first registry release, verify ownership and naming, choose a license, define the files allowlist and package metadata, confirm runtime support, and deliberately remove the publication block.
+The package sets `private: true` and `license: UNLICENSED` to prevent accidental publication and avoid granting an unchosen license. These are temporary release controls, not a licensing recommendation. Before the first registry release, verify ownership and naming, choose a license, define the files allowlist and package metadata, confirm runtime support, and deliberately remove the publication block.
 
 Use independent semantic versions for each Guardian package. Configuration `version: 1` is a schema version, not a package release. Deprecate compatible fields before removal; break incompatible configuration only in a documented major package release. Never silently migrate a consumer's configuration.
 
