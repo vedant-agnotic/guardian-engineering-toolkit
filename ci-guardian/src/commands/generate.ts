@@ -38,38 +38,70 @@ export function warnUnportableDependencies(repoRoot: string): void {
   }
 }
 
-/** Writes the workflow as a new file. Returns false (and explains) if one already exists. */
-export function writeWorkflow(repoRoot: string, text: string, options: { quiet?: boolean } = {}): boolean {
-  const target = join(repoRoot, WORKFLOW_PATH);
+import { GITLAB_PIPELINE_PATH, renderGitLabPipeline } from '../providers/gitlab/pipeline.js';
+import { BITBUCKET_PIPELINE_PATH, renderBitbucketPipeline } from '../providers/bitbucket/pipeline.js';
+
+/** Writes a file if it does not already exist. Returns false if already exists. */
+export function writeTargetFile(repoRoot: string, targetPath: string, text: string, options: { quiet?: boolean } = {}): boolean {
+  const target = join(repoRoot, targetPath);
   if (existsSync(target)) {
-    ui.warn(`${WORKFLOW_PATH} already exists; it was not changed. Compare it with "ci-guardian generate" and merge by hand.`);
+    ui.warn(`${targetPath} already exists; it was not changed. Compare it with "ci-guardian generate" and merge by hand.`);
     return false;
   }
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, text, { encoding: 'utf8', flag: 'wx' });
   if (options.quiet) return true;
-  ui.success(`Created ${WORKFLOW_PATH}`);
-  ui.info(`Commit it, then require the ${out.bold(`"${REQUIRED_STATUS}"`)} status in your branch protection rules.`);
+  ui.success(`Created ${targetPath}`);
   return true;
 }
 
-export function generateCommand(options: { provider?: string; write: boolean }): number {
-  if (options.provider !== undefined && options.provider !== 'github-actions') {
-    throw new GuardianError(`Unknown provider "${options.provider}". Supported: github-actions`);
+/** Writes the workflow as a new file. Returns false (and explains) if one already exists. */
+export function writeWorkflow(repoRoot: string, text: string, options: { quiet?: boolean } = {}): boolean {
+  const ok = writeTargetFile(repoRoot, WORKFLOW_PATH, text, options);
+  if (ok && !options.quiet) {
+    ui.info(`Commit it, then require the ${out.bold(`"${REQUIRED_STATUS}"`)} status in your branch protection rules.`);
   }
+  return ok;
+}
+
+export function generateCommand(options: { provider?: string; write: boolean }): number {
   const repoRoot = getRepoRoot();
   const { config } = loadConfig(repoRoot);
-  const inputs = workflowInputs(repoRoot);
-  const text = renderWorkflow(config, inputs);
+  const provider = options.provider ?? config.provider;
+
+  const validProviders = ['github-actions', 'gitlab-ci', 'bitbucket-pipelines'];
+  if (!validProviders.includes(provider)) {
+    throw new GuardianError(`Unknown provider "${provider}". Supported: ${validProviders.join(', ')}`);
+  }
+
+  let text: string;
+  let targetPath: string;
+
+  if (provider === 'gitlab-ci') {
+    text = renderGitLabPipeline(config);
+    targetPath = GITLAB_PIPELINE_PATH;
+  } else if (provider === 'bitbucket-pipelines') {
+    text = renderBitbucketPipeline(config, defaultBranch(repoRoot));
+    targetPath = BITBUCKET_PIPELINE_PATH;
+  } else {
+    const inputs = workflowInputs(repoRoot);
+    text = renderWorkflow(config, inputs);
+    targetPath = WORKFLOW_PATH;
+  }
 
   if (!existsSync(join(repoRoot, 'package-lock.json'))) {
     ui.warn('No package-lock.json found; the workflow installs with "npm ci", which needs one.');
   }
   warnUnportableDependencies(repoRoot);
+
   if (!options.write) {
     console.log(highlightYaml(text));
-    ui.info(`Preview only. Run ${out.green('ci-guardian generate --write')} to create ${WORKFLOW_PATH}.`);
+    ui.info(`Preview only. Run ${out.green(`ci-guardian generate --write${options.provider ? ` --provider ${options.provider}` : ''}`)} to create ${targetPath}.`);
     return EXIT.ok;
   }
-  return writeWorkflow(repoRoot, text) ? EXIT.ok : EXIT.usage;
+
+  if (provider === 'github-actions') {
+    return writeWorkflow(repoRoot, text) ? EXIT.ok : EXIT.usage;
+  }
+  return writeTargetFile(repoRoot, targetPath, text) ? EXIT.ok : EXIT.usage;
 }

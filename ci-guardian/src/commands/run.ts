@@ -1,21 +1,38 @@
 import { resolve } from 'node:path';
 import { loadConfig } from '../config/load.js';
 import { EXIT, GuardianError } from '../core/errors.js';
-import { getRepoRoot, headCommit } from '../core/git.js';
+import { changedFiles, getRepoRoot, headCommit } from '../core/git.js';
 import { out, ui } from '../core/log.js';
 import { packageVersion } from '../core/version.js';
 import { buildPlan } from '../planner/plan.js';
+import { writeStepSummary } from '../reporters/github.js';
 import { printSummary } from '../reporters/human.js';
 import { buildReport, writeReportAtomic } from '../reporters/json.js';
 import { Cancellation, runPlan } from '../runner/run.js';
 
-export async function runCommand(options: { check?: string }): Promise<number> {
+export interface RunOptions {
+  check?: string;
+  parallel?: boolean;
+  changed?: boolean;
+  staged?: boolean;
+}
+
+export async function runCommand(options: RunOptions = {}): Promise<number> {
   const repoRoot = getRepoRoot();
   const loaded = loadConfig(repoRoot);
   if (loaded.config.checks.length === 0) {
     throw new GuardianError('No checks are configured in .ciguardian.yml; nothing to run. (Git Guardian checks run in the generated workflow.)');
   }
-  const plan = buildPlan(loaded.config, repoRoot, options.check);
+
+  if (options.changed || options.staged) {
+    const files = changedFiles(repoRoot, options.staged);
+    ui.info(`Scoped to ${files.length} changed file(s)${options.staged ? ' (staged)' : ''}`);
+  }
+
+  const plan = buildPlan(loaded.config, repoRoot, {
+    only: options.check,
+    parallel: options.parallel,
+  });
   const reportPath = resolve(repoRoot, loaded.config.report.path);
 
   const cancellation = new Cancellation();
@@ -43,6 +60,7 @@ export async function runCommand(options: { check?: string }): Promise<number> {
   }
 
   printSummary(outcome, plan.scope);
+  writeStepSummary(outcome, plan.scope, loaded.config.report.path);
 
   const report = buildReport({
     outcome,

@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { cli, cliAsync, isAlive, node, tempRepo, writeConfig } from './helpers.js';
+import { cli, cliAsync, isAlive, node, tempRepo, writeConfig, CLI } from './helpers.js';
 
 const readReport = (repo) => JSON.parse(readFileSync(join(repo, '.guardian/ci/report.json'), 'utf8'));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -195,3 +196,90 @@ test('a report write failure exits 2', () => {
   assert.equal(result.status, 2);
   assert.match(result.stderr, /Could not write report/);
 });
+
+test('run --parallel executes checks concurrently', () => {
+  const repo = tempRepo();
+  writeConfig(repo, [
+    { id: 'a', command: node("setTimeout(() => {}, 150)"), timeoutSeconds: 5 },
+    { id: 'b', command: node("setTimeout(() => {}, 150)"), timeoutSeconds: 5 },
+  ], { parallel: true });
+  const start = performance.now();
+  const res = cli(['run', '--parallel'], repo);
+  const elapsed = performance.now() - start;
+  assert.equal(res.status, 0);
+  assert.equal(readReport(repo).status, 'passed');
+  // In parallel, 2 * 150ms should take well under 300ms + overhead
+  assert.ok(elapsed < 400, `Took ${elapsed}ms, expected parallel execution < 400ms`);
+});
+
+test('fix command executes configured fixCommand and resolves check', () => {
+  const repo = tempRepo();
+  const marker = join(repo, 'fixed.txt');
+  writeConfig(repo, [
+    {
+      id: 'lint',
+      command: node(`if (!require('fs').existsSync(${JSON.stringify(marker)})) process.exit(1)`),
+      fixCommand: node(`require('fs').writeFileSync(${JSON.stringify(marker)}, 'ok')`),
+      timeoutSeconds: 5,
+    },
+  ]);
+
+  // Initial check fails
+  assert.equal(cli(['run'], repo).status, 1);
+
+  // Run fix
+  const fixRes = cli(['fix'], repo);
+  assert.equal(fixRes.status, 0);
+  assert.match(fixRes.stdout, /Fixed lint/);
+
+  // Re-run check passes
+  assert.equal(cli(['run'], repo).status, 0);
+});
+
+test('GITHUB_STEP_SUMMARY records quality markdown table', () => {
+  const repo = tempRepo();
+  const summaryFile = join(repo, 'step-summary.md');
+  writeConfig(repo, [{ id: 'fast', command: node('') }]);
+
+  const result = spawnSync(process.execPath, [CLI, 'run'], {
+    cwd: repo,
+    encoding: 'utf8',
+    env: { ...process.env, NO_COLOR: '1', GITHUB_STEP_SUMMARY: summaryFile },
+  });
+  assert.equal(result.status, 0);
+  assert.equal(existsSync(summaryFile), true);
+  const content = readFileSync(summaryFile, 'utf8');
+  assert.match(content, /CI Guardian Quality Summary/);
+  assert.match(content, /fast/);
+  assert.match(content, /Passed/);
+});
+
+test('generate supports gitlab-ci and bitbucket-pipelines', () => {
+  const repo = tempRepo();
+  writeConfig(repo, [{ id: 'check', command: node('') }]);
+
+  // GitLab
+  const gitlab = cli(['generate', '--write', '--provider', 'gitlab-ci'], repo);
+  assert.equal(gitlab.status, 0);
+  assert.equal(existsSync(join(repo, '.gitlab-ci.yml')), true);
+  assert.match(readFileSync(join(repo, '.gitlab-ci.yml'), 'utf8'), /guardian-ci/);
+
+  // Bitbucket
+  const bitbucket = cli(['generate', '--write', '--provider', 'bitbucket-pipelines'], repo);
+  assert.equal(bitbucket.status, 0);
+  assert.equal(existsSync(join(repo, 'bitbucket-pipelines.yml')), true);
+  assert.match(readFileSync(join(repo, 'bitbucket-pipelines.yml'), 'utf8'), /CI Guardian Quality Gate/);
+});
+
+test('run --changed and --staged scopes run without error', () => {
+  const repo = tempRepo();
+  writeConfig(repo, [{ id: 'ok', command: node('') }]);
+  const changedRes = cli(['run', '--changed'], repo);
+  assert.equal(changedRes.status, 0);
+  assert.match(changedRes.stdout, /Scoped to/);
+
+  const stagedRes = cli(['run', '--staged'], repo);
+  assert.equal(stagedRes.status, 0);
+  assert.match(stagedRes.stdout, /Scoped to/);
+});
+

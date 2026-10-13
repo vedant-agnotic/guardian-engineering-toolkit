@@ -12,15 +12,21 @@ export function tempRepo(prefix = 'ci-guardian-') {
   return root;
 }
 
-/** Writes .ciguardian.yml with the given checks (objects with id, command, timeoutSeconds). */
-export function writeConfig(root, checks, { failFast = false, projectRoot = '.', reportPath = '.guardian/ci/report.json' } = {}) {
+/** Writes .ciguardian.yml with the given checks (objects with id, command, timeoutSeconds, fixCommand). */
+export function writeConfig(root, checks, { failFast = false, parallel, concurrency, projectRoot = '.', reportPath = '.guardian/ci/report.json' } = {}) {
   const lines = ['version: 1', 'project:', '  type: generic', `  root: ${JSON.stringify(projectRoot)}`, 'provider: github-actions', 'checks:'];
   for (const check of checks) {
     lines.push(`  - id: ${check.id}`);
     lines.push(`    command: [${check.command.map((part) => JSON.stringify(part)).join(', ')}]`);
+    if (check.fixCommand) {
+      lines.push(`    fixCommand: [${check.fixCommand.map((part) => JSON.stringify(part)).join(', ')}]`);
+    }
     lines.push(`    timeoutSeconds: ${check.timeoutSeconds ?? 30}`);
   }
-  lines.push('execution:', `  failFast: ${failFast}`, 'report:', `  path: ${JSON.stringify(reportPath)}`);
+  lines.push('execution:', `  failFast: ${failFast}`);
+  if (parallel !== undefined) lines.push(`  parallel: ${parallel}`);
+  if (concurrency !== undefined) lines.push(`  concurrency: ${concurrency}`);
+  lines.push('report:', `  path: ${JSON.stringify(reportPath)}`);
   writeFileSync(join(root, '.ciguardian.yml'), `${lines.join('\n')}\n`);
 }
 

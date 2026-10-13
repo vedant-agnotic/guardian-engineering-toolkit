@@ -43,9 +43,19 @@ export function stringifyConfig(config: CiGuardianConfig): string {
   for (const check of config.checks) {
     lines.push(`  - id: ${scalar(check.id)}`);
     lines.push(`    command: [${check.command.map(scalar).join(', ')}]`);
+    if (check.fixCommand && check.fixCommand.length > 0) {
+      lines.push(`    fixCommand: [${check.fixCommand.map(scalar).join(', ')}]`);
+    }
     lines.push(`    timeoutSeconds: ${check.timeoutSeconds}`);
   }
-  lines.push('execution:', `  failFast: ${config.execution.failFast}`, 'report:', `  path: ${scalar(config.report.path)}`);
+  lines.push('execution:', `  failFast: ${config.execution.failFast}`);
+  if (config.execution.parallel !== undefined) {
+    lines.push(`  parallel: ${config.execution.parallel}`);
+  }
+  if (config.execution.concurrency !== undefined) {
+    lines.push(`  concurrency: ${config.execution.concurrency}`);
+  }
+  lines.push('report:', `  path: ${scalar(config.report.path)}`);
   if (config.gitGuardian) {
     lines.push('# Branch name, commit messages, PR title and secrets, checked by Git Guardian in the generated workflow.');
     lines.push('gitGuardian:', `  enabled: ${config.gitGuardian.enabled}`);

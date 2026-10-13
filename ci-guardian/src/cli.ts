@@ -10,6 +10,8 @@ import { packageVersion } from './core/version.js';
 
 const VERSION = packageVersion();
 
+import { fixCommand } from './commands/fix.js';
+
 async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
 
@@ -33,9 +35,21 @@ async function main(argv: string[]): Promise<number> {
     case 'doctor':
       parseFlags(rest, {});
       return doctorCommand();
-    case 'run': {
+    case 'fix': {
       const flags = parseFlags(rest, { values: ['--check'] });
-      return runCommand({ check: flags.values.get('--check') });
+      return fixCommand({ check: flags.values.get('--check') });
+    }
+    case 'run': {
+      const flags = parseFlags(rest, {
+        booleans: ['--parallel', '--changed', '--staged'],
+        values: ['--check'],
+      });
+      return runCommand({
+        check: flags.values.get('--check'),
+        parallel: flags.booleans.has('--parallel'),
+        changed: flags.booleans.has('--changed'),
+        staged: flags.booleans.has('--staged'),
+      });
     }
     case 'generate': {
       const flags = parseFlags(rest, { booleans: ['--write'], values: ['--provider'] });
@@ -94,9 +108,16 @@ function printHelp(): void {
       row('doctor', 'Check Node, paths and that every command exists (runs nothing)'),
       row('run', 'Run every check and write .guardian/ci/report.json'),
       row('run --check <id>', 'Run one check (report marked partial)'),
-      section('GitHub Actions'),
-      row('generate', 'Preview .github/workflows/guardian-ci.yml'),
-      row('generate --write', 'Create it (never overwrites an existing file)'),
+      row('run --parallel', 'Run checks concurrently for faster execution'),
+      row('run --changed', 'Scope run to files changed relative to HEAD'),
+      row('run --staged', 'Scope run to staged files'),
+      section('Fix'),
+      row('fix', 'Auto-fix issues found by checks (eslint --fix, prettier --write, etc.)'),
+      row('fix --check <id>', 'Auto-fix a specific check'),
+      section('CI Workflow Generation'),
+      row('generate', 'Preview workflow (default: github-actions)'),
+      row('generate --write', 'Create workflow (never overwrites an existing file)'),
+      row('generate --provider <p>', 'Generate for: github-actions, gitlab-ci, bitbucket-pipelines'),
       section('Examples'),
       example('npx ci-guardian init', '# answer the questions; creates config and workflow'),
       example('npx ci-guardian run', '# run all checks like CI will'),

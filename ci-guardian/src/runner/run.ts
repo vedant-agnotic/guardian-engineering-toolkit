@@ -49,9 +49,21 @@ export class Cancellation {
   }
 }
 
-/** Runs checks sequentially in plan order. Never throws for check failures. */
+/** Runs checks in plan order (sequentially or in parallel). Never throws for check failures. */
 export async function runPlan(plan: ExecutionPlan, cancellation = new Cancellation(), hooks: RunHooks = {}): Promise<RunOutcome> {
   const startedAt = new Date();
+  if (plan.parallel) {
+    return runParallel(plan, startedAt, cancellation, hooks);
+  }
+  return runSequential(plan, startedAt, cancellation, hooks);
+}
+
+async function runSequential(
+  plan: ExecutionPlan,
+  startedAt: Date,
+  cancellation: Cancellation,
+  hooks: RunHooks,
+): Promise<RunOutcome> {
   const results: CheckResult[] = [];
   let stopReason: string | null = null;
 
@@ -72,6 +84,54 @@ export async function runPlan(plan: ExecutionPlan, cancellation = new Cancellati
 
     if (result.status === 'failed' && plan.failFast) {
       stopReason = `not started: failFast after "${check.id}" failed`;
+    }
+  }
+
+  return { status: aggregate(results), startedAt, finishedAt: new Date(), checks: results };
+}
+
+async function runParallel(
+  plan: ExecutionPlan,
+  startedAt: Date,
+  cancellation: Cancellation,
+  hooks: RunHooks,
+): Promise<RunOutcome> {
+  const results: CheckResult[] = new Array(plan.checks.length);
+  let stopReason: string | null = null;
+  const concurrency = Math.max(1, Math.min(plan.concurrency, plan.checks.length));
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < plan.checks.length) {
+      const index = nextIndex++;
+      const check = plan.checks[index];
+
+      if (cancellation.cancelled) {
+        results[index] = skipped(check.id, `not started: run ${cancellation.reason ?? 'cancelled'}`);
+        continue;
+      }
+      if (stopReason) {
+        results[index] = skipped(check.id, stopReason);
+        continue;
+      }
+
+      hooks.onCheckStart?.(check, index, plan.checks.length);
+      const result = await runCheck(check, cancellation);
+      results[index] = result;
+      hooks.onCheckEnd?.(result);
+
+      if (result.status === 'failed' && plan.failFast) {
+        stopReason = `not started: failFast after "${check.id}" failed`;
+      }
+    }
+  }
+
+  const workers = Array.from({ length: concurrency }, () => worker());
+  await Promise.all(workers);
+
+  for (let i = 0; i < plan.checks.length; i++) {
+    if (!results[i]) {
+      results[i] = skipped(plan.checks[i].id, stopReason ?? 'not started');
     }
   }
 

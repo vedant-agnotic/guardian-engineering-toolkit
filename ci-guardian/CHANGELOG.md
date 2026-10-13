@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 — 2026-10-13
+
+- Added `ci-guardian fix` command with support for custom `fixCommand` in `.ciguardian.yml` and automatic inference for standard tools (`eslint --fix`, `prettier --write`).
+- Added parallel execution support via `execution.parallel: true`, `execution.concurrency: <n>`, or `ci-guardian run --parallel` (drastically reducing total CI check duration).
+- Added GitHub Actions Job Summary (`$GITHUB_STEP_SUMMARY`) integration: automatically formats a markdown table with check statuses, durations, and diagnostic tips.
+- Added smart file scoping via `ci-guardian run --changed` (files changed relative to HEAD) and `ci-guardian run --staged` (staged files).
+- Added multi-provider CI workflow generation: `ci-guardian generate --provider gitlab-ci` (generates `.gitlab-ci.yml`) and `ci-guardian generate --provider bitbucket-pipelines` (generates `bitbucket-pipelines.yml`).
+
 ## 0.1.0 — 2026-10-13
 
 - First npm release as `@agnotic/ci-guardian` (the command is still `ci-guardian`). MIT license; `private` removed; `files`, `repository`, `homepage`, `bugs`, `keywords`, `publishConfig` and `prepublishOnly` added.

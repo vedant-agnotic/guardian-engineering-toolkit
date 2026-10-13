@@ -8,30 +8,33 @@
 
 > **In one line:** `@agnotic/ci-guardian` is a config-driven way to run your project's lint, type-check, test and audit commands the same way locally and in GitHub Actions, behind one required status check. Install with `npm install --save-dev @agnotic/ci-guardian`, then run `npx ci-guardian init`. Pair it with [`@agnotic/git-guardian`](../git-guardian/Readme.md), a Husky alternative for branch and commit rules, to enforce the same conventions on pull requests.
 
-> v0.1.0 · Requires Node 20+ and Git. Package: [`@agnotic/ci-guardian`](https://www.npmjs.com/package/@agnotic/ci-guardian).
-> Implemented: config, `init`, `validate`, `doctor`, `run` with JSON reports, `generate` for GitHub Actions, and optional Git Guardian checks in the generated workflow.
-> The generated workflow has been parsed and its scripts exercised locally, but not yet run on GitHub.
+> v0.1.2 · Requires Node 20+ and Git. Package: [`@agnotic/ci-guardian`](https://www.npmjs.com/package/@agnotic/ci-guardian).
+> Implemented: config, `init`, `validate`, `doctor`, `run` with parallel execution and JSON reports, `fix` for autofixable checks, GitHub Step Summary markdown reporting, smart file scoping (`--changed`/`--staged`), multi-provider pipeline generation (GitHub Actions, GitLab CI, Bitbucket Pipelines), and optional Git Guardian checks.
 > Tested on macOS with Node 20; Linux is expected to behave the same; Windows is untested.
 
 ## Purpose and scope
 
-CI Guardian standardizes how projects invoke their existing linters, type checkers, tests and build checks. It supplies a typed configuration contract, a local runner, reports and a reviewable GitHub Actions workflow. It does not replace those tools, invent missing tests or host CI runners.
+CI Guardian standardizes how projects invoke their existing linters, type checkers, tests and build checks. It supplies a typed configuration contract, a local runner, reports and a reviewable GitHub Actions, GitLab CI or Bitbucket workflow. It does not replace those tools, invent missing tests or host CI runners.
 
 The first preset is React Native; a generic profile runs explicit commands for any other project without claiming a tested framework preset.
 
 ## Compared with Husky and hand-written workflows
 
-CI Guardian is not a Git hook manager, so it does not replace Husky's local hooks; [Git Guardian](../git-guardian/Readme.md) does that for branch names, commit messages and secrets. CI Guardian covers the other half: the pull-request side.
+CI Guardian is not a Git hook manager, so it does not replace Husky's local hooks; [Git Guardian](../git-guardian/Readme.md) does that for branch names, commit messages and secrets. CI Guardian covers the quality pipeline: local execution and pull-request verification.
 
 | | CI Guardian | Husky + lint-staged + a hand-written workflow |
 | --- | --- | --- |
 | Where checks are defined | One committed `.ciguardian.yml` | Split between `.husky/`, `package.json` and workflow YAML |
 | Local run matches CI | `npx ci-guardian run` runs exactly what CI runs | Easy to drift apart |
+| Parallel execution | Built-in (`execution.parallel: true` or `--parallel`) | Requires separate orchestration (e.g. `concurrently`) |
+| Auto-fix mode | Built-in (`npx ci-guardian fix`) | Run tool-specific commands manually |
+| Smart change scoping | `npx ci-guardian run --changed` / `--staged` | Handled locally by lint-staged; difficult in CI |
 | Required status in branch protection | One stable name, `guardian-ci / required`, even when checks change | One status per job; rules need editing when jobs change |
+| CI PR Step Summary | Built-in Markdown summary with check timings and diagnostics | Hand-rolled GitHub actions or third-party bots |
+| Multi-provider support | GitHub Actions, GitLab CI, Bitbucket Pipelines | Write separate configs for each provider |
 | Workflow file | Generated, pinned to commit SHAs, read-only permissions | Written and maintained by hand |
 | Branch, commit and secret rules in CI | `gitGuardian.enabled: true` | Extra scripts or actions |
-| Report | JSON report per run | Depends on the setup |
-| Local pre-commit hooks | Not provided (use Git Guardian, Husky or lefthook) | Provided by Husky |
+| Report | Atomic JSON report per run (`.guardian/ci/report.json`) | Depends on the setup |
 
 ## Install
 
@@ -89,10 +92,14 @@ Output is colour-coded in a terminal (errors red, warnings yellow, success and c
 | Command | What it does |
 | --- | --- |
 | `npx ci-guardian run` | Run every check, as CI will; writes `.guardian/ci/report.json` |
+| `npx ci-guardian run --parallel` | Run checks concurrently for drastically faster execution |
 | `npx ci-guardian run --check lint` | Run one check (report marked partial) |
+| `npx ci-guardian run --changed` / `--staged` | Run checks scoped to changed or staged files |
+| `npx ci-guardian fix` | Auto-fix issues across checks (runs `fixCommand` or inferred `--fix` / `--write`) |
 | `npx ci-guardian validate` | Check `.ciguardian.yml`; runs nothing |
 | `npx ci-guardian doctor` | Check Node, paths and that every command exists; runs nothing |
 | `npx ci-guardian generate` | Preview the workflow; `--write` creates it (never overwrites) |
+| `npx ci-guardian generate --provider <p>` | Generate for: `github-actions`, `gitlab-ci`, or `bitbucket-pipelines` |
 
 To change checks, edit `.ciguardian.yml`; the workflow picks the change up automatically, because it runs `ci-guardian run`. To turn Git Guardian checks on or off, change `gitGuardian.enabled`, delete `.github/workflows/guardian-ci.yml` and run `npx ci-guardian generate --write`.
 

@@ -56,7 +56,7 @@ export function validateSchema(raw: YamlValue): { config?: CiGuardianConfig; iss
       const seen = new Set<string>();
       root.checks.forEach((item, index) => {
         const path = `checks[${index}]`;
-        const check = expectMapping(item, path, ['id', 'command', 'timeoutSeconds'], add);
+        const check = expectMapping(item, path, ['id', 'command', 'timeoutSeconds'], add, ['fixCommand']);
         if (!check) return;
 
         if (check.id !== undefined) {
@@ -85,6 +85,22 @@ export function validateSchema(raw: YamlValue): { config?: CiGuardianConfig; iss
           }
         }
 
+        if (check.fixCommand !== undefined) {
+          if (!Array.isArray(check.fixCommand) || check.fixCommand.length === 0) {
+            add(`${path}.fixCommand`, 'must be a non-empty list: [executable, arg, ...]');
+          } else {
+            check.fixCommand.forEach((part, partIndex) => {
+              if (typeof part !== 'string') {
+                add(`${path}.fixCommand[${partIndex}]`, `must be a string; quote it, e.g. "${String(part)}"`);
+              } else if (partIndex === 0 && !part.trim()) {
+                add(`${path}.fixCommand[0]`, 'executable must not be empty');
+              } else if (part.includes('\0')) {
+                add(`${path}.fixCommand[${partIndex}]`, 'must not contain NUL characters');
+              }
+            });
+          }
+        }
+
         if (check.timeoutSeconds !== undefined) {
           const timeout = check.timeoutSeconds;
           if (typeof timeout !== 'number' || !Number.isInteger(timeout) || timeout < 1 || timeout > MAX_TIMEOUT_SECONDS) {
@@ -95,9 +111,20 @@ export function validateSchema(raw: YamlValue): { config?: CiGuardianConfig; iss
     }
   }
 
-  const execution = expectMapping(root.execution, 'execution', ['failFast'], add);
-  if (execution && execution.failFast !== undefined && typeof execution.failFast !== 'boolean') {
-    add('execution.failFast', 'must be true or false');
+  const execution = expectMapping(root.execution, 'execution', ['failFast'], add, ['parallel', 'concurrency']);
+  if (execution) {
+    if (execution.failFast !== undefined && typeof execution.failFast !== 'boolean') {
+      add('execution.failFast', 'must be true or false');
+    }
+    if (execution.parallel !== undefined && typeof execution.parallel !== 'boolean') {
+      add('execution.parallel', 'must be true or false');
+    }
+    if (execution.concurrency !== undefined) {
+      const concurrency = execution.concurrency;
+      if (typeof concurrency !== 'number' || !Number.isInteger(concurrency) || concurrency < 1 || concurrency > 32) {
+        add('execution.concurrency', 'must be an integer from 1 to 32');
+      }
+    }
   }
 
   const report = expectMapping(root.report, 'report', ['path'], add);

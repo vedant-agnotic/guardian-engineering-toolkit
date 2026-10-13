@@ -1,6 +1,6 @@
 {
   "name": "@agnotic/ci-guardian",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Run and maintain project quality checks (lint, tests, audit, Git Guardian rules) locally and in GitHub Actions with one required status. Config-driven CI runner with JSON reports.",
   "license": "MIT",
   "author": "Agnotic",

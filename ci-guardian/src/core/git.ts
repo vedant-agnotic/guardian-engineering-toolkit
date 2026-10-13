@@ -38,3 +38,12 @@ export function defaultBranch(repoRoot: string): string {
   const current = git(['symbolic-ref', '--quiet', '--short', 'HEAD'], repoRoot);
   return current.status === 0 && current.stdout ? current.stdout : 'main';
 }
+
+/** Lists files changed relative to HEAD or currently staged in git. */
+export function changedFiles(repoRoot: string, staged = false): string[] {
+  const args = staged ? ['diff', '--name-only', '--staged'] : ['diff', '--name-only', 'HEAD'];
+  const result = git(args, repoRoot);
+  if (result.status !== 0 || !result.stdout) return [];
+  return result.stdout.split('\n').map((f) => f.trim()).filter(Boolean);
+}
+
