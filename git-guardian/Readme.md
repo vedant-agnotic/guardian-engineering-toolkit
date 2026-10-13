@@ -86,8 +86,9 @@ npm install --save-dev ./tools/agnotic-git-guardian-<version>.tgz
 | 1 | Branch name format | `<type>/<number>-<description>` | `feat/123-add-login` |
 | 2 | Allowed types (branches and commits) | `feat, chore, bugfix, task` | — |
 | 3 | Commit message format | `<type>: <description>` | `feat: add login page` |
-| 4 | Block commits that contain secrets? | Yes | — |
-| 5 | Also run these checks in GitHub Actions? (installs [`@agnotic/ci-guardian`](https://www.npmjs.com/package/@agnotic/ci-guardian) from npm and sets it up) | No | — |
+| 4 | Exclude standard branches (`main`, `develop`, etc.)? | Yes | — |
+| 5 | Block commits that contain secrets? | Yes | — |
+| 6 | Also run these checks in GitHub Actions? (installs [`@agnotic/ci-guardian`](https://www.npmjs.com/package/@agnotic/ci-guardian) from npm and sets it up) | No | — |
 
 Placeholders:
 

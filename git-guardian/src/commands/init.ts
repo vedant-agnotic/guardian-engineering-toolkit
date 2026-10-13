@@ -117,6 +117,16 @@ async function promptForRules(rl: Prompt, config: GitGuardianConfig, offerCi: bo
   }
   ui.info(`Commit example: ${out.green(exampleFor(compileCommitFormat(config.commit)))}`);
 
+  const excludeAnswer = await rl.question(
+    `\n${out.bold(out.cyan('Exclude standard branches (main, master, develop, staging) from naming rules?'))} ${out.dim('[Y/n]')} `,
+  );
+  const trimmedExclude = excludeAnswer.trim();
+  if (/^n(o)?$/i.test(trimmedExclude)) {
+    config.branch.protected = '';
+  } else if (trimmedExclude && !/^y(es)?$/i.test(trimmedExclude)) {
+    config.branch.protected = splitCsv(trimmedExclude).join(',');
+  }
+
   const secretAnswer = await rl.question(
     `\n${out.bold(out.cyan('Block commits that contain secrets (API keys, tokens, passwords, .env files)?'))} ${out.dim('[Y/n]')} `,
   );

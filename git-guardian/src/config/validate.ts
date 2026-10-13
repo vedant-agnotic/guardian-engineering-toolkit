@@ -22,7 +22,6 @@ export function configErrors(config: GitGuardianConfig): string[] {
   if (config.commit.maxSubjectLength < 1 || !Number.isInteger(config.commit.maxSubjectLength)) {
     errors.push('commit.maxSubjectLength must be a positive integer');
   }
-  if (!splitCsv(config.branch.protected).length) errors.push('branch.protected cannot be empty');
 
   return errors;
 }

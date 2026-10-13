@@ -26,6 +26,11 @@ test('allows protected branches', () => {
   assert.equal(validateBranchName('develop', config).valid, true);
 });
 
+test('enforces format when protected branches list is empty', () => {
+  const strictConfig = { ...config, protected: '' };
+  assert.equal(validateBranchName('main', strictConfig).valid, false);
+});
+
 test('suggests from free text, mapping common type words', () => {
   assert.deepEqual(suggestBranchNames('ABC-42 Fix login crash', config), [
     'bugfix/42-login-crash',
