@@ -97,3 +97,27 @@ test('commit-msg hook blocks invalid messages', () => {
   const good = git(root, ['commit', '-m', 'feat: add file'], env);
   assert.equal(good.status, 0, good.stdout + good.stderr);
 });
+
+test('hooks find the project-local CLI from a linked worktree', async () => {
+  const { mkdirSync, symlinkSync } = await import('node:fs');
+  const root = repo();
+  writeConfig(root, createDefaultConfig());
+  writeFileSync(join(root, '.gitignore'), 'node_modules/\n');
+  assert.equal(git(root, ['add', '.']).status, 0);
+  assert.equal(git(root, ['commit', '-m', 'chore: add config']).status, 0);
+  // node_modules/.bin/git-guardian exists only in the main worktree, as with a real npm install.
+  const bin = join(root, 'node_modules', '.bin');
+  mkdirSync(bin, { recursive: true });
+  symlinkSync(join(process.cwd(), 'dist', 'cli.js'), join(bin, 'git-guardian'));
+  chmodSync(join(process.cwd(), 'dist', 'cli.js'), 0o755);
+  installHooks(root, createDefaultConfig());
+
+  const tree = join(mkdtempSync(join(tmpdir(), 'git-guardian-wt-')), 'work tree');
+  assert.equal(git(root, ['worktree', 'add', '-b', 'Bad_Branch', tree]).status !== 0, true);
+  const ok = git(root, ['worktree', 'add', '-b', 'feat/1-worktree', tree]);
+  assert.equal(ok.status, 0, ok.stderr);
+  writeFileSync(join(tree, 'x.txt'), 'x');
+  assert.equal(git(tree, ['add', 'x.txt']).status, 0);
+  assert.notEqual(git(tree, ['commit', '-m', 'nonsense']).status, 0);
+  assert.equal(git(tree, ['commit', '-m', 'feat: from worktree']).status, 0);
+});

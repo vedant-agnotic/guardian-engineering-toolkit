@@ -2,6 +2,7 @@ import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { configExists, writeConfig } from '../config/load.js';
 import { createDefaultConfig } from '../config/defaults.js';
+import { configFromPreset, findPreset } from '../config/presets.js';
 import type { GitGuardianConfig } from '../config/types.js';
 import { splitCsv, typeListErrors } from '../config/validate.js';
 import { getRepoRoot, gitVersion, supportsReferenceTransaction } from '../core/git.js';
@@ -15,6 +16,8 @@ import { compileFormat, exampleFor } from '../validation/template.js';
 export interface InitOptions {
   force?: boolean;
   yes?: boolean;
+  /** Start from a named preset (see `git-guardian presets`) instead of the defaults. */
+  preset?: string;
   /** Offer to set up CI Guardian at the end (false when CI Guardian itself runs this init). */
   ci?: boolean;
 }
@@ -25,7 +28,7 @@ export async function initCommand(options: InitOptions = {}): Promise<void> {
     throw new Error('.git-guardian.yml already exists. Use --force to replace it.');
   }
 
-  const config = createDefaultConfig();
+  const config = options.preset ? configFromPreset(findPreset(options.preset)) : createDefaultConfig();
   let install = true;
   let ci = false;
 

@@ -6,9 +6,11 @@
 
 **Readable branch-name and commit-message rules for your team, enforced by Git hooks.**
 
+> **In one line:** `@agnotic/git-guardian` is a Husky alternative for branch-name and commit-message rules. Install it with `npm install --save-dev @agnotic/git-guardian`, run `npx git-guardian init`, and Git hooks are set up for you. There is no `prepare` script, no `.husky/` folder, no commitlint config and no regular expressions.
+
 Write your conventions as plain formats like `<type>/<number>-<description>`, with no regular expressions. Git Guardian blocks a badly named branch before it is created, and a commit before it is recorded if the message breaks the format or the changes contain an API key, token, password or `.env` file. Each time, it explains the format and suggests a fix. The rules live in a committed `.git-guardian.yml`, so every clone follows the same conventions.
 
-> **Status:** v0.1.1, pre-release; not yet on npm, so install from a local tarball (below).
+> **Status:** early release (0.x); the config format may still change between minor versions. Package: [`@agnotic/git-guardian`](https://www.npmjs.com/package/@agnotic/git-guardian).
 > Requires Node.js 20+ and Git 2.28+. Tested on macOS; Linux expected to work; Windows untested.
 
 ## What it looks like
@@ -46,36 +48,19 @@ In a terminal, errors are red, hints yellow, and examples and suggestions green.
 
 ## Install
 
-Git Guardian isn't on npm yet, so install it from a tarball. Requirements: Node.js 20+, Git 2.28+, and a `package.json` in the project (run `npm init -y` if there isn't one; any language works).
-
-**1. Build the tarball** (once):
+Requirements: Node.js 20+, Git 2.28+, and a `package.json` in the project (run `npm init -y` if there isn't one; the project itself can be any language).
 
 ```bash
-git clone https://github.com/vedant-agnotic/guardian-engineering-toolkit.git
-cd guardian-engineering-toolkit/git-guardian
-npm install
-npm pack                     # creates git-guardian-0.1.1.tgz
-```
-
-**2. Add it to your project.** Keep the tarball inside the project, in `tools/`, and commit it. Then teammates and CI get it from a plain `npm install`, and the path in `package.json` works everywhere.
-
-```bash
-cd /path/to/your-project
-mkdir -p tools
-cp /path/to/guardian-engineering-toolkit/git-guardian/git-guardian-0.1.1.tgz tools/
-npm install --save-dev ./tools/git-guardian-0.1.1.tgz
-```
-
-**3. Set it up:**
-
-```bash
+npm install --save-dev @agnotic/git-guardian
 npx git-guardian init        # 5 questions; or --yes to accept the defaults
 npx git-guardian doctor      # confirms both hooks are installed
-git add .git-guardian.yml package.json package-lock.json tools
+git add .git-guardian.yml package.json package-lock.json
 git commit -m "chore: add git guardian"
 ```
 
-**4. Each teammate**, after pulling and running `npm install`, runs once:
+The package is `@agnotic/git-guardian`; the command is `git-guardian`.
+
+**Each teammate**, after pulling and running `npm install`, runs once:
 
 ```bash
 npx git-guardian install
@@ -83,7 +68,16 @@ npx git-guardian install
 
 Hooks live in each clone's `.git/hooks` and aren't committed. To install them automatically on `npm install`, see [Automating install for a team](docs/HOW_IT_WORKS.md#automating-install-for-a-team).
 
-Once published to npm, steps 1–2 become `npm install --save-dev <package-name>`.
+### Install an unreleased build
+
+To try changes that aren't on npm yet, build a tarball and keep it inside the project (in `tools/`, committed), so teammates and CI can install it too:
+
+```bash
+cd guardian-engineering-toolkit/git-guardian && npm install && npm pack   # creates agnotic-git-guardian-<version>.tgz
+cd /path/to/your-project && mkdir -p tools
+cp /path/to/guardian-engineering-toolkit/git-guardian/agnotic-git-guardian-*.tgz tools/
+npm install --save-dev ./tools/agnotic-git-guardian-<version>.tgz
+```
 
 ## Setup questions
 
@@ -93,7 +87,7 @@ Once published to npm, steps 1–2 become `npm install --save-dev <package-name>
 | 2 | Allowed types (branches and commits) | `feat, chore, bugfix, task` | — |
 | 3 | Commit message format | `<type>: <description>` | `feat: add login page` |
 | 4 | Block commits that contain secrets? | Yes | — |
-| 5 | Also run these checks in GitHub Actions? (sets up [CI Guardian](../ci-guardian/Readme.md)) | No | — |
+| 5 | Also run these checks in GitHub Actions? (installs [`@agnotic/ci-guardian`](https://www.npmjs.com/package/@agnotic/ci-guardian) from npm and sets it up) | No | — |
 
 Placeholders:
 
@@ -180,7 +174,7 @@ This catches common mistakes; it isn't a full secret scanner. Pair it with your 
 
 Local hooks can be skipped, so run the same rules on every pull request too. In CI, Git Guardian validates the branch name, every commit message in the PR, the PR title (what lands on `main` with squash merge), and scans the PR's added lines for secrets.
 
-**Recommended: answer yes to the last `init` question.** It installs [CI Guardian](../ci-guardian/Readme.md), which also offers lint, Prettier and `npm audit`, then generates `.github/workflows/guardian-ci.yml` with one required status, `guardian-ci / required`. In an existing setup, run `npx ci-guardian init` instead.
+**Recommended: answer yes to the last `init` question.** It installs [`@agnotic/ci-guardian`](../ci-guardian/Readme.md) from npm (no tarball needed), which also offers lint, Prettier and `npm audit`, then generates `.github/workflows/guardian-ci.yml` with one required status, `guardian-ci / required`. In an existing setup, run `npx ci-guardian init` instead.
 
 **Git Guardian alone:** copy [examples/github-actions/git-guardian.yml](examples/github-actions/git-guardian.yml) to `.github/workflows/` and make its `conventions` check required.
 
@@ -212,13 +206,29 @@ To remove CI Guardian as well, follow [its removal steps](../ci-guardian/Readme.
 
 ```bash
 npx git-guardian uninstall            # removes its hooks; restores any hooks you had before
-npm uninstall git-guardian            # removes it from package.json and package-lock.json
-git rm .git-guardian.yml tools/git-guardian-*.tgz
+npm uninstall @agnotic/git-guardian   # removes it from package.json and package-lock.json
+git rm .git-guardian.yml
+git rm tools/*git-guardian-*.tgz        # only if you installed from a tarball
 ```
 
 If you use the standalone workflow (`.github/workflows/git-guardian.yml`), remove its required status in branch protection, then delete the file.
 
 **3. Commit and push.** Hooks are per clone, so each teammate runs `npx git-guardian uninstall` after pulling and **before** their next `npm install` (until then the package is still in their `node_modules`). Anyone already blocked by "git-guardian: executable not found" can delete `.git/hooks/reference-transaction` and `.git/hooks/commit-msg`, then rename any `*.git-guardian-original` files back.
+
+## Compared with Husky, commitlint and lefthook
+
+| | Git Guardian | Husky + commitlint | lefthook |
+| --- | --- | --- | --- |
+| Setup | `npm i -D` + `npx git-guardian init` (guided) | `npm i -D`, `husky init`, hook files, commitlint config | Install binary, write `lefthook.yml` |
+| Branch-name rules | Built in, checked before the branch exists | Not included; needs an extra script | Not included; needs a script |
+| Commit-message rules | Built in, readable formats | commitlint rules (JS/JSON config) | Not included; needs commitlint or a script |
+| Secret scan on commit | Built in | Not included | Not included |
+| Existing hooks | Backed up, still run, restored on `uninstall` | You manage `.husky/` yourself | You manage `lefthook.yml` yourself |
+| Teammate setup | `npx git-guardian install` (or automate it) | Automatic via the `prepare` script | `lefthook install` |
+| Runs arbitrary tasks (lint, tests) on commit | No | Yes | Yes |
+| CI enforcement | `validate commits`, or [CI Guardian](../ci-guardian/Readme.md) | Separate setup | Separate setup |
+
+Pick Git Guardian when the goal is *naming and message conventions plus secret scanning*, with a CI check that matches. Keep Husky or lefthook for running linters and tests on commit; the two can coexist, because Git Guardian preserves hooks that are already there.
 
 ## Good to know
 

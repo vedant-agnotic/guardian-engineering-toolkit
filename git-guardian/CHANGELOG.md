@@ -8,6 +8,7 @@
 - Rejections now explain each placeholder, show an example and suggest names built from the input.
 - The commit subject limit is now exactly `maxSubjectLength`; Git comment lines are ignored.
 - Colour-coded output: errors red, warnings yellow, success green, placeholders yellow, examples and suggestions green, coloured help and init prompts. Colour is off when output is not a terminal; `NO_COLOR=1` disables it and `FORCE_COLOR=1` forces it.
+- Published on npm as `@agnotic/git-guardian` (the unscoped `git-guardian` belongs to an unrelated package); the command stays `git-guardian`. `publishConfig.provenance` removed, because provenance only works when publishing from CI.
 - Security: the example workflow uses `npx --no git-guardian`, so a missing dependency fails the job instead of downloading the unrelated npm package named `git-guardian`.
 - Rewrote install and uninstall steps: tarballs live in the project's `tools/` folder; uninstall covers CI Guardian, teammates and recovery.
 - `init` asks a final question, "Also run these checks in GitHub Actions?" On yes it installs CI Guardian (prompting for its tarball until it is published, copying it into `tools/`) and runs CI Guardian's setup. New `--no-ci` flag skips the question.

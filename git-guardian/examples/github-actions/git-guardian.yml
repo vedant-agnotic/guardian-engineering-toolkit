@@ -44,8 +44,8 @@ jobs:
       - name: Install dependencies
         id: install
         run: npm ci
-      # b) Once published to npm, without touching package.json (any language):
-      #   - run: npm install --global <package-name>@<version>
+      # b) Without touching package.json (any language):
+      #   - run: npm install --global @agnotic/git-guardian@<version>
       #   and replace "npx git-guardian" below with "git-guardian".
 
       # Each check runs even if an earlier one failed, so one run reports every problem.

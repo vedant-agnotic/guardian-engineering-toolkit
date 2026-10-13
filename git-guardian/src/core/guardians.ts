@@ -13,8 +13,8 @@ const CI_GUARDIAN = {
   bin: 'ci-guardian',
   /** An npm install spec (name@version or .tgz path), e.g. for testing before publication. */
   envVar: 'CI_GUARDIAN_PACKAGE',
-  /** Registry name once published; null until then so nothing unrelated is installed by name. */
-  publishedName: null as string | null,
+  /** Registry name, installed when CI Guardian is missing (override with CI_GUARDIAN_PACKAGE). */
+  publishedName: '@agnotic/ci-guardian' as string | null,
 };
 
 export const CI_CONFIG_FILE = '.ciguardian.yml';

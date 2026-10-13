@@ -40,3 +40,24 @@ test('colour follows NO_COLOR, FORCE_COLOR, TERM and TTY', async () => {
   assert.equal(createPalette(false).red('x'), 'x');
   assert.equal(createPalette(true).placeholders('feat/<number>'), 'feat/\u001b[33m<number>\u001b[39m');
 });
+
+test('rejects unknown options and wrong value types instead of silently using defaults', async () => {
+  const { writeFileSync } = await import('node:fs');
+  const root = mkdtempSync(join(tmpdir(), 'git-guardian-strict-'));
+  const file = join(root, '.git-guardian.yml');
+
+  writeFileSync(file, 'version: 1\nbrnach:\n  enabled: true\n');
+  assert.throws(() => loadConfig(root), /unknown option "brnach"/);
+
+  writeFileSync(file, 'version: 1\nbranch:\n  formt: "<type>/<description>"\n');
+  assert.throws(() => loadConfig(root), /unknown option "branch\.formt"/);
+
+  writeFileSync(file, 'version: 1\ncommit:\n  maxSubjectLength: "long"\n');
+  assert.throws(() => loadConfig(root), /commit\.maxSubjectLength must be a number/);
+
+  writeFileSync(file, 'version: 1\nsecrets:\n  enabled: "yes"\n');
+  assert.throws(() => loadConfig(root), /secrets\.enabled must be a boolean/);
+
+  writeFileSync(file, 'version: 1\nbranch:\n  enabled: false\n');
+  assert.equal(loadConfig(root).branch.enabled, false); // partial configs still fall back to defaults
+});

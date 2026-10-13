@@ -4,7 +4,7 @@ A checklist for the first public release on npm and GitHub, then the routine for
 
 | Item | Current state |
 | --- | --- |
-| npm name `git-guardian` | **Taken** by an unrelated package (v1.0.18, github.com/jordycold/git-guardian). A different or scoped name is required. |
+| npm name | **`@agnotic/git-guardian`** (npm organisation `agnotic`, owned by `vedant-agnotic`). The unscoped `git-guardian` belongs to an unrelated package. |
 | GitHub repository | `vedant-agnotic/guardian-engineering-toolkit`, **private** |
 | CI | None (`.github/workflows` does not exist) |
 | `package.json` | Version `0.1.1`; no `repository`, `homepage`, `bugs` or `author` fields |
@@ -48,7 +48,7 @@ Add the identity, links and safety fields. Example for a scoped name published f
     "directory": "git-guardian"
   },
   "bugs": { "url": "https://github.com/vedant-agnotic/guardian-engineering-toolkit/issues" },
-  "publishConfig": { "access": "public", "provenance": true },
+  "publishConfig": { "access": "public" },
   "scripts": {
     "prepublishOnly": "npm test"
   }
@@ -160,7 +160,7 @@ Commit before publishing, so the tag points at exactly the code that is on npm.
 
 Create a GitHub release from that tag and paste the changelog section into it.
 
-`provenance: true` only works when publishing from CI. For a first publish from your laptop, remove it or run `npm publish --provenance=false`, then move publishing into a GitHub Actions workflow (step 7).
+`provenance: true` only works when publishing from CI. From a laptop npm stops with `Automatic provenance generation not supported for provider: null`, so `package.json` doesn't set it; add `--provenance` when publishing from a GitHub Actions workflow (step 7).
 
 ## 6. Verify the release
 

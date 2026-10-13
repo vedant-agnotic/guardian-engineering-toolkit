@@ -2,7 +2,7 @@
 
 ## Setup
 
-Use Node 20+ and Git 2.28+ as declared by the package. Start in a disposable ordinary Git repository and install a verified local tarball as shown in the [Readme](../Readme.md). This avoids relying on unverified public registry ownership.
+Use Node 20+ and Git 2.28+. Install the package with `npm install --save-dev @agnotic/git-guardian` (see the [Readme](../Readme.md#install)). Make sure it's the scoped `@agnotic` package: the unscoped `git-guardian` on npm is unrelated. Try it in a disposable repository first.
 
 Run `git-guardian init`. It asks three questions (branch name format, allowed types, commit message format) and whether hooks should be installed, showing an example after each answer. Press Enter to keep a default; an invalid format is explained and asked again. Answer `n` to write only configuration. `init --yes` writes defaults and installs without prompting. Non-TTY init also proceeds with defaults even without --yes; do not invoke it merely to inspect a repository.
 
@@ -78,19 +78,19 @@ Requirements and pitfalls:
 - **Use the PR's `head_ref` for the branch.** On a pull request the runner checks out a detached merge commit, so the "current branch" is meaningless. Plain `validate` isn't a gate either; it only warns.
 - **Pass event values through `env:`** and quote them (`"$BRANCH"`). Branch names and PR titles are user input; pasting `${{ github.head_ref }}` straight into a `run:` script lets a crafted name run commands. The example workflow does this correctly, and a branch named `wip/$(touch${IFS}PWNED)` was verified to execute nothing.
 - **Bot branches** (`dependabot/…`, `renovate/…`) don't follow team conventions; the example skips them.
-- **The CLI must be installable on the runner.** Until Git Guardian is on npm, commit the tarball (e.g. `tools/git-guardian-0.1.1.tgz`) and add it as a devDependency: `"git-guardian": "file:tools/git-guardian-0.1.1.tgz"`. `npm ci` then installs it. After publishing, a non-Node project can run `npm install --global <name>@<version>` instead.
+- **The CLI must be installable on the runner.** With `@agnotic/git-guardian` in `devDependencies`, `npm ci` installs it. For an unreleased build, commit the tarball under `tools/` and install it from there; a `file:` path outside the repository fails on the runner.
 - **Make it required:** repository Settings → Branches (or Rules) → require the `conventions` check before merging. Pin actions to full commit SHAs in production.
 
 The range commands also work locally, e.g. `npx git-guardian validate commits origin/main..HEAD` before opening a PR. To fix bad commit messages: `git rebase -i origin/main`, mark them `reword`, then `git push --force-with-lease`.
 
 ## Upgrade and remove
 
-**Upgrade:** replace the tarball in `tools/` with the new one, run `npm install --save-dev ./tools/git-guardian-<version>.tgz`, delete the old tarball, then `npx git-guardian install` to refresh the hooks and `npx git-guardian validate config`. Test in a branch before merging. Re-installing replaces hooks that carry Guardian's marker without comparing content, so keep any local edits to them first.
+**Upgrade:** run `npm install --save-dev @agnotic/git-guardian@latest` (or, for a tarball build, replace the file in `tools/` and install it), then `npx git-guardian install` to refresh the hooks and `npx git-guardian validate config`. Test in a branch before merging. Re-installing replaces hooks that carry Guardian's marker without comparing content, so keep any local edits to them first.
 
 **Remove:** follow the ordered steps in the [Readme](../Readme.md#uninstall). In short:
 
 1. If CI Guardian runs Git Guardian checks, set `gitGuardian.enabled: false` in `.ciguardian.yml` and regenerate the workflow.
-2. `npx git-guardian uninstall` (hooks first), then `npm uninstall git-guardian`, then delete `.git-guardian.yml` and the tarball in `tools/`.
+2. `npx git-guardian uninstall` (hooks first), then `npm uninstall @agnotic/git-guardian`, then delete `.git-guardian.yml` (and any tarball in `tools/`).
 3. Each teammate runs `npx git-guardian uninstall` before their next `npm install`.
 
 Uninstall restores `.git-guardian-original` backups even if another hook has appeared at the destination since; check `.git/hooks` first if you've added hooks after installing. For limitations and future safety work see [known limitations](KNOWN_LIMITATIONS.md).

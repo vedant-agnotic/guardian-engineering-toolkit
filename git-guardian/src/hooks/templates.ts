@@ -5,6 +5,11 @@ export function commitMsgHookScript(): string {
 ${MANAGED_MARKER}
 set -u
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+MAIN="$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && cd .. && pwd)"
+BIN=""
+for DIR in "$ROOT" "$MAIN"; do
+  if [ -n "$DIR" ] && [ -x "$DIR/node_modules/.bin/git-guardian" ]; then BIN="$DIR/node_modules/.bin/git-guardian"; break; fi
+done
 ORIGINAL="$0.git-guardian-original"
 
 if [ -x "$ORIGINAL" ]; then
@@ -16,8 +21,8 @@ run_guardian() {
     node "$GIT_GUARDIAN_BIN" "$@"
     return $?
   fi
-  if [ -x "$ROOT/node_modules/.bin/git-guardian" ]; then
-    "$ROOT/node_modules/.bin/git-guardian" "$@"
+  if [ -n "$BIN" ]; then
+    "$BIN" "$@"
     return $?
   fi
   if command -v git-guardian >/dev/null 2>&1; then
@@ -37,6 +42,11 @@ export function referenceTransactionHookScript(): string {
 ${MANAGED_MARKER}
 set -u
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+MAIN="$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && cd .. && pwd)"
+BIN=""
+for DIR in "$ROOT" "$MAIN"; do
+  if [ -n "$DIR" ] && [ -x "$DIR/node_modules/.bin/git-guardian" ]; then BIN="$DIR/node_modules/.bin/git-guardian"; break; fi
+done
 ORIGINAL="$0.git-guardian-original"
 TMP="$(mktemp "\${TMPDIR:-/tmp}/git-guardian.XXXXXX")" || exit 1
 trap 'rm -f "$TMP"' EXIT HUP INT TERM
@@ -51,8 +61,8 @@ run_guardian() {
     node "$GIT_GUARDIAN_BIN" "$@" < "$TMP"
     return $?
   fi
-  if [ -x "$ROOT/node_modules/.bin/git-guardian" ]; then
-    "$ROOT/node_modules/.bin/git-guardian" "$@" < "$TMP"
+  if [ -n "$BIN" ]; then
+    "$BIN" "$@" < "$TMP"
     return $?
   fi
   if command -v git-guardian >/dev/null 2>&1; then

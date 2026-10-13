@@ -23,6 +23,7 @@ export function loadConfig(repoRoot: string): GitGuardianConfig {
 
   const parsed = parseSimpleYaml(readFileSync(path, 'utf8'));
   rejectLegacyFields(parsed);
+  rejectUnsupported(parsed);
   const config = mergeConfig(parsed);
   validateConfig(config);
   return config;
@@ -94,6 +95,46 @@ function rejectLegacyFields(raw: Record<string, unknown>): void {
       '  commit:\n    format: "<type>: <description>"\n    types: "feat,chore,bugfix,task"\n' +
       'or delete the file and run "git-guardian init" again.',
   );
+}
+
+const SCHEMA: Record<string, Record<string, 'string' | 'boolean' | 'number'>> = {
+  branch: { enabled: 'boolean', format: 'string', types: 'string', protected: 'string', suggestions: 'boolean' },
+  commit: {
+    enabled: 'boolean',
+    format: 'string',
+    types: 'string',
+    maxSubjectLength: 'number',
+    allowMergeCommits: 'boolean',
+    allowRevertCommits: 'boolean',
+  },
+  secrets: { enabled: 'boolean', allow: 'string' },
+  hooks: { referenceTransaction: 'boolean', commitMsg: 'boolean' },
+};
+
+/** Typos and wrong value types must fail loudly; silently falling back to defaults would weaken the rules. */
+function rejectUnsupported(raw: Record<string, unknown>): void {
+  const errors: string[] = [];
+  for (const key of Object.keys(raw)) {
+    if (key !== 'version' && !(key in SCHEMA)) errors.push(`unknown option "${key}" (supported: version, ${Object.keys(SCHEMA).join(', ')})`);
+  }
+  if ('version' in raw && typeof raw.version !== 'number') errors.push('version must be a number');
+  for (const [section, fields] of Object.entries(SCHEMA)) {
+    if (!(section in raw)) continue;
+    const values = raw[section];
+    if (!values || typeof values !== 'object' || Array.isArray(values)) {
+      errors.push(`${section} must be a section with fields`);
+      continue;
+    }
+    for (const [key, value] of Object.entries(values as Record<string, unknown>)) {
+      if (!(key in fields)) {
+        if (['pattern', 'example', 'suggestionPrefixes', 'suggestionTypes'].includes(key)) continue; // reported as legacy
+        errors.push(`unknown option "${section}.${key}" (supported: ${Object.keys(fields).join(', ')})`);
+      } else if (typeof value !== fields[key]) {
+        errors.push(`${section}.${key} must be a ${fields[key]}`);
+      }
+    }
+  }
+  if (errors.length) throw new Error(`Invalid .git-guardian.yml:\n- ${errors.join('\n- ')}`);
 }
 
 function asObject(value: unknown): Record<string, unknown> {
