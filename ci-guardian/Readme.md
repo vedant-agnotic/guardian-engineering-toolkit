@@ -6,11 +6,12 @@
 
 **A consistent way to configure, run and maintain project quality checks.**
 
-> v0.1.0-alpha.0 · Requires Node 20+ and Git. Not published yet; [install from a tarball](#install).
+> **In one line:** `@agnotic/ci-guardian` is a config-driven way to run your project's lint, type-check, test and audit commands the same way locally and in GitHub Actions, behind one required status check. Install with `npm install --save-dev @agnotic/ci-guardian`, then run `npx ci-guardian init`. Pair it with [`@agnotic/git-guardian`](../git-guardian/Readme.md), a Husky alternative for branch and commit rules, to enforce the same conventions on pull requests.
+
+> v0.1.0 · Requires Node 20+ and Git. Package: [`@agnotic/ci-guardian`](https://www.npmjs.com/package/@agnotic/ci-guardian).
 > Implemented: config, `init`, `validate`, `doctor`, `run` with JSON reports, `generate` for GitHub Actions, and optional Git Guardian checks in the generated workflow.
 > The generated workflow has been parsed and its scripts exercised locally, but not yet run on GitHub.
 > Tested on macOS with Node 20; Linux is expected to behave the same; Windows is untested.
-> Names, registry scope, license and release versions are not finalized.
 
 ## Purpose and scope
 
@@ -18,33 +19,46 @@ CI Guardian standardizes how projects invoke their existing linters, type checke
 
 The first preset is React Native; a generic profile runs explicit commands for any other project without claiming a tested framework preset.
 
+## Compared with Husky and hand-written workflows
+
+CI Guardian is not a Git hook manager, so it does not replace Husky's local hooks; [Git Guardian](../git-guardian/Readme.md) does that for branch names, commit messages and secrets. CI Guardian covers the other half: the pull-request side.
+
+| | CI Guardian | Husky + lint-staged + a hand-written workflow |
+| --- | --- | --- |
+| Where checks are defined | One committed `.ciguardian.yml` | Split between `.husky/`, `package.json` and workflow YAML |
+| Local run matches CI | `npx ci-guardian run` runs exactly what CI runs | Easy to drift apart |
+| Required status in branch protection | One stable name, `guardian-ci / required`, even when checks change | One status per job; rules need editing when jobs change |
+| Workflow file | Generated, pinned to commit SHAs, read-only permissions | Written and maintained by hand |
+| Branch, commit and secret rules in CI | `gitGuardian.enabled: true` | Extra scripts or actions |
+| Report | JSON report per run | Depends on the setup |
+| Local pre-commit hooks | Not provided (use Git Guardian, Husky or lefthook) | Provided by Husky |
+
 ## Install
 
-CI Guardian isn't on npm yet, so install it from a tarball. Requirements: Node.js 20+, Git, and a `package.json` in the project (run `npm init -y` if there isn't one).
-
-**1. Build the tarball** (once, from this toolkit):
+Requirements: Node.js 20+, Git, and a `package.json` in the project (run `npm init -y` if there isn't one; the project itself can be any language).
 
 ```bash
-cd guardian-engineering-toolkit/ci-guardian
-npm install
-npm pack                     # creates ci-guardian-0.1.0-alpha.0.tgz
-```
-
-**2. Add it to your project.** Keep the tarball *inside* the project, in `tools/`, and commit it. A path outside the project works on your machine but makes `npm ci` fail on GitHub's runners.
-
-```bash
-cd /path/to/your-project
-mkdir -p tools
-cp /path/to/guardian-engineering-toolkit/ci-guardian/ci-guardian-0.1.0-alpha.0.tgz tools/
-npm install --save-dev ./tools/ci-guardian-0.1.0-alpha.0.tgz
+npm install --save-dev @agnotic/ci-guardian
 printf '.guardian/\n' >> .gitignore       # local run reports
+npx ci-guardian init
 ```
 
-**3. Run the setup** (next section): `npx ci-guardian init`.
+The package is `@agnotic/ci-guardian`; the command is `ci-guardian`. The unscoped `ci-guardian` name on npm is an unrelated package.
 
-Once published to npm, steps 1–2 become `npm install --save-dev <package-name>`.
+Already using Git Guardian? Answer yes to its last setup question, "Also run these checks in GitHub Actions?"; it installs `@agnotic/ci-guardian` from npm for you and continues with the setup below.
 
-Already using Git Guardian? Answer yes to its last setup question, "Also run these checks in GitHub Actions?"; it installs CI Guardian for you (asking for the tarball path) and continues with the setup below.
+### Install an unreleased build
+
+To try changes that aren't on npm yet, build a tarball and keep it inside the project, in `tools/`, so teammates and CI can install it too. A path outside the project works on your machine but makes `npm ci` fail on GitHub's runners.
+
+```bash
+cd guardian-engineering-toolkit/ci-guardian && npm install && npm pack   # creates agnotic-ci-guardian-<version>.tgz
+cd /path/to/your-project && mkdir -p tools
+cp /path/to/guardian-engineering-toolkit/ci-guardian/agnotic-ci-guardian-*.tgz tools/
+npm install --save-dev ./tools/agnotic-ci-guardian-<version>.tgz
+```
+
+Maintainers: see [Publishing](docs/PUBLISHING.md).
 
 ## Set up
 
@@ -90,9 +104,10 @@ CI Guardian installs no hooks and changes nothing outside the files it created, 
 2. **Delete CI Guardian's files and the package:**
 
    ```bash
-   git rm .ciguardian.yml .github/workflows/guardian-ci.yml tools/ci-guardian-*.tgz
+   git rm .ciguardian.yml .github/workflows/guardian-ci.yml
+   git rm tools/*ci-guardian-*.tgz          # only if you installed from a tarball
    rm -rf .guardian                     # local reports
-   npm uninstall ci-guardian            # removes it from package.json and package-lock.json
+   npm uninstall @agnotic/ci-guardian   # removes it from package.json and package-lock.json
    ```
 
 3. **Commit and push.**
@@ -153,7 +168,7 @@ To develop CI Guardian itself: `npm install`, then `npm test` (builds and runs t
 ## Documentation
 
 - [Usage](docs/USAGE.md), [reference manual](docs/REFERENCE_MANUAL.md), [architecture](docs/ARCHITECTURE.md).
-- [Development](docs/DEVELOPMENT.md), [testing](docs/TESTING.md), [roadmap](docs/ROADMAP.md).
+- [Publishing](docs/PUBLISHING.md), [development](docs/DEVELOPMENT.md), [testing](docs/TESTING.md), [roadmap](docs/ROADMAP.md).
 - [Security](docs/SECURITY.md), [decisions](docs/DECISIONS.md), [sources](docs/SOURCES.md).
 - [React Native configuration](examples/ciguardian.example.yml), [generic Python configuration](examples/ciguardian.python.example.yml).
 

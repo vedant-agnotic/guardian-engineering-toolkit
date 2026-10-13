@@ -1,9 +1,21 @@
 {
-  "name": "ci-guardian",
-  "version": "0.1.0-alpha.0",
-  "private": true,
-  "description": "Repeatable quality checks for project-owned commands: validate, doctor and a sequential runner with JSON reports",
-  "license": "UNLICENSED",
+  "name": "@agnotic/ci-guardian",
+  "version": "0.1.0",
+  "description": "Run and maintain project quality checks (lint, tests, audit, Git Guardian rules) locally and in GitHub Actions with one required status. Config-driven CI runner with JSON reports.",
+  "license": "MIT",
+  "author": "Agnotic",
+  "homepage": "https://github.com/vedant-agnotic/guardian-engineering-toolkit/tree/main/ci-guardian#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vedant-agnotic/guardian-engineering-toolkit.git",
+    "directory": "ci-guardian"
+  },
+  "bugs": {
+    "url": "https://github.com/vedant-agnotic/guardian-engineering-toolkit/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "bin": {
     "ci-guardian": "dist/cli.js"
@@ -11,6 +23,7 @@
   "files": [
     "dist",
     "Readme.md",
+    "LICENSE",
     "docs",
     "examples"
   ],
@@ -18,12 +31,28 @@
     "node": ">=20"
   },
   "scripts": {
+    "prepublishOnly": "npm test",
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test tests/*.test.js",
     "check": "npm test",
     "pack:local": "npm pack",
     "docs:check": "python3 scripts/check_docs.py"
   },
+  "keywords": [
+    "ci",
+    "github-actions",
+    "ci-cd",
+    "quality-checks",
+    "lint",
+    "pull-request",
+    "required-status",
+    "husky-alternative",
+    "git-hooks",
+    "commit-message",
+    "developer-tools",
+    "guardrails",
+    "cli"
+  ],
   "devDependencies": {
     "@types/node": "22.20.5",
     "typescript": "5.9.3"

@@ -1,6 +1,6 @@
 # CI Guardian reference manual
 
-> v1 contract, implemented in 0.1.0-alpha.0. Doctor exits 2 when it finds a problem.
+> v1 contract, implemented in 0.1.0. Doctor exits 2 when it finds a problem.
 
 ## Commands
 

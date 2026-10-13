@@ -1,6 +1,6 @@
 # Package development
 
-> v0.1.0-alpha.0 · C1 and C2 are implemented; workflow generation (C3) and the Git Guardian adapter (C4) are not.
+> v0.1.0 · C1–C4 (config, runner, workflow generation, Git Guardian job) are implemented; see the roadmap for what remains.
 
 ## Build and test
 
@@ -46,7 +46,7 @@ Review checklist: contract matches help; files owned by users survive; errors id
 
 ## Package publication
 
-The package sets `private: true` and `license: UNLICENSED` to prevent accidental publication and avoid granting an unchosen license. These are temporary release controls, not a licensing recommendation. Before the first registry release, verify ownership and naming, choose a license, define the files allowlist and package metadata, confirm runtime support, and deliberately remove the publication block.
+The package is published as `@agnotic/ci-guardian` under the MIT license, with an explicit `files` allowlist, `publishConfig.access: public` and a `prepublishOnly` test run. See [Publishing](PUBLISHING.md) for the release steps.
 
 Use independent semantic versions for each Guardian package. Configuration `version: 1` is a schema version, not a package release. Deprecate compatible fields before removal; break incompatible configuration only in a documented major package release. Never silently migrate a consumer's configuration.
 

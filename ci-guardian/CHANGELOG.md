@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.0 — 2026-10-13
+
+- First npm release as `@agnotic/ci-guardian` (the command is still `ci-guardian`). MIT license; `private` removed; `files`, `repository`, `homepage`, `bugs`, `keywords`, `publishConfig` and `prepublishOnly` added.
+- Added [Publishing](docs/PUBLISHING.md) with the release order relative to Git Guardian.
+- Readme: install from npm, one-line summary, and a comparison with Husky and hand-written workflows. Tarball install is kept for unreleased builds.
+- Git Guardian's setup now installs `@agnotic/ci-guardian` from npm.
+
 ## 0.1.0-alpha.0 — 2026-10-04
 
 - Added the TypeScript CLI with `init` (interactive and `--defaults`), `validate`, `doctor` and `run [--check <id>]` (milestones C1 and C2).

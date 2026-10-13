@@ -1,18 +1,17 @@
 # User guide
 
-> v0.1.0-alpha.0: `init`, `validate`, `doctor` and `run` are implemented. `generate` and the Git Guardian adapter are still proposals.
+> v0.1.0: `init`, `validate`, `doctor`, `run` and `generate` (with the Git Guardian job) are implemented.
 
 ## Install and prepare
 
-Until CI Guardian is published, install it from a tarball kept in the project's `tools/` folder, so the same path works on CI runners:
+Install the published package:
 
 ```bash
-mkdir -p tools && cp /path/to/ci-guardian-0.1.0-alpha.0.tgz tools/
-npm install --save-dev ./tools/ci-guardian-0.1.0-alpha.0.tgz
+npm install --save-dev @agnotic/ci-guardian
 printf '.guardian/\n' >> .gitignore
 ```
 
-Build the tarball with `npm pack` in the `ci-guardian` folder. Full steps are in the [Readme](../Readme.md#install). Git Guardian's setup can also install it for you (its last question). In a repository without `package.json`, you can run `node <path>/dist/cli.js` locally, but the generated workflow needs a Node project. The CLI needs Node 20+; the application's own dependencies and toolchains remain the project's responsibility.
+To test an unreleased build, install a tarball kept in the project's `tools/` folder instead, so the same path works on CI runners; see the [Readme](../Readme.md#install-an-unreleased-build). Git Guardian's setup can also install the published package for you (its last question). In a repository without `package.json`, you can run `node <path>/dist/cli.js` locally, but the generated workflow needs a Node project. The CLI needs Node 20+; the application's own dependencies and toolchains remain the project's responsibility.
 
 Before setup, identify commands that already work: lint, type checking, unit tests and optionally a build check. For React Native, use the project's actual package manager and test framework. The example `--runInBand` applies to Jest-style commands and must not be copied to a different runner.
 
@@ -66,7 +65,7 @@ Set `gitGuardian.enabled: true` in `.ciguardian.yml` (init does this when you an
 
 ### Update CI Guardian
 
-1. Build or download the new tarball, replace the old one in `tools/`, and install it: `npm install --save-dev ./tools/ci-guardian-<version>.tgz`. Delete the old tarball.
+1. Install the new version: `npm install --save-dev @agnotic/ci-guardian@latest` (or a pinned version). If you installed a tarball, replace it in `tools/` and delete the old one.
 2. Run `npx ci-guardian validate` and `npx ci-guardian run`.
 3. Compare the workflow: `npx ci-guardian generate > /tmp/new.yml && diff .github/workflows/guardian-ci.yml /tmp/new.yml`. To take the new version, delete the old file and run `npx ci-guardian generate --write`. Generation never overwrites an existing file.
 4. Commit everything in a pull request and check that `guardian-ci / required` passes before merging. Keep the previous tarball's commit, so you can revert.
@@ -83,9 +82,10 @@ CI Guardian installs no hooks; it owns only the files it created. Remove them in
 2. **Delete its files and the dependency:**
 
    ```bash
-   git rm .ciguardian.yml .github/workflows/guardian-ci.yml tools/ci-guardian-*.tgz
+   git rm .ciguardian.yml .github/workflows/guardian-ci.yml
+   git rm tools/*ci-guardian-*.tgz   # only if you installed from a tarball
    rm -rf .guardian
-   npm uninstall ci-guardian
+   npm uninstall @agnotic/ci-guardian
    ```
 
 3. **Commit and push.**

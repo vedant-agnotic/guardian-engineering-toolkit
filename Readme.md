@@ -8,38 +8,48 @@ Independent packages that standardize engineering guardrails across projects: Gi
 
 | Package | Status | Responsibility | First target |
 | --- | --- | --- | --- |
-| <img src="git-guardian/assets/git-guardian-logo.png" alt="" width="50"> <p>[git-guardian](git-guardian/Readme.md)</p> | **v0.1.1, working CLI** | Readable branch-name and commit-message rules (`<type>/<number>-<description>`) plus secret scanning on commit, enforced by local Git hooks | Ordinary Git repos across project languages |
-| <img src="ci-guardian/assets/ci-guardian-logo.png" alt="" width="50"> <p>[ci-guardian](ci-guardian/Readme.md)</p> | **v0.1.0-alpha.0, runner and workflow generation** | Run quality checks and generate CI workflows | RN JS checks, generic explicit commands, GitHub Actions |
+| <img src="git-guardian/assets/git-guardian-logo.png" alt="" width="50"> <p>[@agnotic/git-guardian](git-guardian/Readme.md)</p> | **Published on npm (`@agnotic/git-guardian`)** | Modern, easy Husky alternative: readable branch-name and commit-message rules (`<type>/<number>-<description>`) plus secret scanning on commit, enforced by local Git hooks | Ordinary Git repos across project languages |
+| <img src="ci-guardian/assets/ci-guardian-logo.png" alt="" width="50"> <p>[@agnotic/ci-guardian](ci-guardian/Readme.md)</p> | **v0.1.0 (publish-ready npm package)** | Standardized CI quality checks (lint, test, type-check, audit) locally and in GitHub Actions behind one required status check | JavaScript / TypeScript, React Native, generic CLIs |
 | <img src="config-guardian/assets/config-guardian-logo.png" alt="" width="50"> <p>[config-guardian](config-guardian/Readme.md)</p> | Design draft | Define app environments once; generate and validate native configuration | RN development/staging/production on iOS and Android |
 | <img src="release-guardian/assets/release-guardian-logo.png" alt="" width="50"> <p>[release-guardian](release-guardian/Readme.md)</p> | Design draft | Build, sign and upload mobile internal releases | RN iOS/TestFlight, then Android/Play Internal |
 
-Git Guardian and CI Guardian have implementations and tests. CI Guardian covers config, `validate`, `doctor`, `run` with JSON reports and GitHub Actions workflow generation. Config and Release Guardian are documentation-first scaffolds: their commands are proposed interfaces, not working CLIs. All manifests except Git Guardian's are private. No package has been published to a registry.
+Git Guardian and CI Guardian are production-ready CLIs with comprehensive test suites. Git Guardian is published on npm as [`@agnotic/git-guardian`](https://www.npmjs.com/package/@agnotic/git-guardian). CI Guardian is packaged under [`@agnotic/ci-guardian`](https://www.npmjs.com/package/@agnotic/ci-guardian) with MIT licensing and published npm package integration.
 
 Start with [GUARDIAN_TOOLKIT_MANUAL.md](GUARDIAN_TOOLKIT_MANUAL.md) for the overall reference and implementation sequence.
 
 ## Set up the whole toolkit
 
-Each package works on its own, and they also set each other up. Starting from either one gives the same result:
+Each package works independently or hand-in-hand. When setting up Git Guardian, it can automatically install and configure `@agnotic/ci-guardian` directly from npm:
 
 ```bash
-npx git-guardian init   # branch/commit rules, secret scan, hooks; last question: "Also run these checks in GitHub Actions?"
+npx git-guardian init   # branch/commit rules, secret scan, hooks; offers to set up CI Guardian
 # or
-npx ci-guardian init    # "Add Git Guardian checks to CI?" (sets up Git Guardian if missing), then lint, Prettier, npm audit, tests
+npx ci-guardian init    # CI runner, quality checks, GitHub Actions workflow generation
 ```
 
-The result: local hooks for branch names, commit messages and secrets, plus `.ciguardian.yml` and `.github/workflows/guardian-ci.yml` that run the same rules and your code checks on every pull request, behind one required status, `guardian-ci / required`. The tools only call each other's commands; no code is shared. Until they're on npm, setup asks for the other package's `.tgz` and copies it into `tools/` so CI can install it.
+The result: local hooks for branch names, commit messages and secrets, plus `.ciguardian.yml` and `.github/workflows/guardian-ci.yml` that run the same rules and your code checks on every pull request, behind one required status, `guardian-ci / required`.
 
 ## Install and remove
 
-Neither package is on npm yet. Build a tarball with `npm install && npm pack` in the package folder, copy it into your project's `tools/` folder, commit it, and install it from there: `npm install --save-dev ./tools/<file>.tgz`. Keeping it inside the project lets teammates and CI install it with a plain `npm install`.
+Both packages are designed as lightweight devDependencies installed directly from npm:
+
+```bash
+# Git Guardian (Husky alternative for branch & commit validation + secret scanning)
+npm install --save-dev @agnotic/git-guardian
+npx git-guardian init
+
+# CI Guardian (Consistent local runner and GitHub Actions generator)
+npm install --save-dev @agnotic/ci-guardian
+npx ci-guardian init
+```
 
 | | Install | Remove |
 | --- | --- | --- |
-| Git Guardian | [Install](git-guardian/Readme.md#install), then `npx git-guardian init` | [Uninstall](git-guardian/Readme.md#uninstall): hooks first, then the package |
-| CI Guardian | [Install](ci-guardian/Readme.md#install), then `npx ci-guardian init` | [Remove](ci-guardian/Readme.md#remove): the required status on GitHub first, then the files |
+| Git Guardian | `npm i -D @agnotic/git-guardian` then `npx git-guardian init` | [Uninstall](git-guardian/Readme.md#uninstall): hooks first (`npx git-guardian uninstall`), then package |
+| CI Guardian | `npm i -D @agnotic/ci-guardian` then `npx ci-guardian init` | [Remove](ci-guardian/Readme.md#remove): GitHub status rule first, then remove generated workflow and config |
 | Both | Install either one and say yes when it offers the other | Remove CI Guardian first, then Git Guardian |
 
-Read Git Guardian's [how it works](git-guardian/docs/HOW_IT_WORKS.md) for what runs at each Git command, and [publishing](git-guardian/docs/PUBLISHING.md) for the steps to release it on npm. The npm name `git-guardian` is already taken by an unrelated package, so the public release needs a scoped or different name.
+Git Guardian is published as **`@agnotic/git-guardian`** (`npm install --save-dev @agnotic/git-guardian`; the CLI command is `git-guardian`). The unscoped name `git-guardian` on npm is an unrelated package. Read [how it works](git-guardian/docs/HOW_IT_WORKS.md) for what runs at each Git command, and [publishing](git-guardian/docs/PUBLISHING.md) for release workflows.
 
 ## Repository layout
 

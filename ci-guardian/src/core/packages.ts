@@ -16,7 +16,7 @@ export const GIT_GUARDIAN: GuardianPackage = {
   label: 'Git Guardian',
   bin: 'git-guardian',
   envVar: 'GIT_GUARDIAN_PACKAGE',
-  publishedName: null,
+  publishedName: '@agnotic/git-guardian',
 };
 
 /** The project-local executable, if installed. */

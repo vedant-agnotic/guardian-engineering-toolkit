@@ -11,7 +11,7 @@
 | Git adapter | Detached checkout, shallow history, rebased head, empty range | Real Git histories and pinned CLI |
 | Packaging | Actual npm tarball on minimum/current approved Node | CLI/preset assets included |
 
-## Covered today (v0.1.0-alpha.0)
+## Covered today (v0.1.0)
 
 `npm test` runs 40 tests on Node's built-in runner:
 
