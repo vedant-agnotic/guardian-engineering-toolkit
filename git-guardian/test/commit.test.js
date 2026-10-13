@@ -43,3 +43,31 @@ test('supports an optional scope', () => {
 test('allows merge commits by default', () => {
   assert.equal(validateCommitMessage("Merge branch 'main' into develop", config).valid, true);
 });
+
+test('enriches commit message with ticket from branch when format expects it', async () => {
+  const { enrichCommitMessageWithBranch } = await import('../dist/validation/commit.js');
+
+  const ticketPrefixConfig = { ...config, format: '<ticket> <type>: <description>' };
+  const r1 = enrichCommitMessageWithBranch('feat: add login page', 'feat/ABC-123-add-login', ticketPrefixConfig);
+  assert.notEqual(r1, null);
+  assert.equal(r1.ticketOrNumber, 'ABC-123');
+  assert.equal(r1.updatedMessage, 'ABC-123 feat: add login page');
+
+  const ticketScopedConfig = { ...config, format: '<type>(<ticket>): <description>' };
+  const r2 = enrichCommitMessageWithBranch('task: handle webhook', 'task/PAY-42-webhook', ticketScopedConfig);
+  assert.notEqual(r2, null);
+  assert.equal(r2.ticketOrNumber, 'PAY-42');
+  assert.equal(r2.updatedMessage, 'task(PAY-42): handle webhook');
+
+  const numberConfig = { ...config, format: '<type>/<number>: <description>' };
+  const r3 = enrichCommitMessageWithBranch('feat: new dashboard', 'feat/99-dashboard', numberConfig);
+  assert.notEqual(r3, null);
+  assert.equal(r3.ticketOrNumber, '99');
+  assert.equal(r3.updatedMessage, 'feat/99: new dashboard');
+
+  // Does nothing if format doesn't expect ticket or number
+  assert.equal(enrichCommitMessageWithBranch('feat: add login', 'feat/ABC-123-login', config), null);
+
+  // Does nothing if message already has the ticket
+  assert.equal(enrichCommitMessageWithBranch('ABC-123 feat: add login', 'feat/ABC-123-login', ticketPrefixConfig), null);
+});

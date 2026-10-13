@@ -67,7 +67,14 @@ export function compileFormat(format: string, kind: FormatKind, types: string[])
   const placeholders = collectPlaceholders(tokens);
   if (!placeholders.length) throw new Error(`format "${format}" has no placeholders such as <type> or <description>`);
   if (placeholders.includes('type') && !types.length) throw new Error('format uses <type> but no types are configured');
-  if (kind === 'branch' && /\s/.test(format)) throw new Error(`branch format "${format}" must not contain spaces`);
+  if (kind === 'branch') {
+    if (/\s/.test(format)) throw new Error(`branch format "${format}" must not contain spaces`);
+    if (format.includes(':')) throw new Error(`branch format "${format}" must not contain colons (:) because Git forbids them in branch names`);
+    if (/[~^?*\\]/.test(format)) throw new Error(`branch format "${format}" contains characters forbidden by Git (~, ^, ?, *, \\)`);
+    if (format.includes('..')) throw new Error(`branch format "${format}" must not contain ".."`);
+    if (format.includes('//')) throw new Error(`branch format "${format}" must not contain consecutive slashes "//"`);
+    if (format.endsWith('.lock')) throw new Error(`branch format "${format}" must not end in ".lock"`);
+  }
 
   const typeAlternation = types.map(escapeRegex).join('|');
   const source = toRegex(tokens, kind, typeAlternation);

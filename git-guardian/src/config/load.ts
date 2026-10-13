@@ -66,6 +66,7 @@ function mergeConfig(raw: Record<string, unknown>): GitGuardianConfig {
       maxSubjectLength: numberValue(commit.maxSubjectLength, defaults.commit.maxSubjectLength),
       allowMergeCommits: booleanValue(commit.allowMergeCommits, defaults.commit.allowMergeCommits),
       allowRevertCommits: booleanValue(commit.allowRevertCommits, defaults.commit.allowRevertCommits),
+      autoTicket: booleanValue(commit.autoTicket, defaults.commit.autoTicket),
     },
     secrets: {
       enabled: booleanValue(secrets.enabled, defaults.secrets.enabled),
@@ -106,6 +107,7 @@ const SCHEMA: Record<string, Record<string, 'string' | 'boolean' | 'number'>> = 
     maxSubjectLength: 'number',
     allowMergeCommits: 'boolean',
     allowRevertCommits: 'boolean',
+    autoTicket: 'boolean',
   },
   secrets: { enabled: 'boolean', allow: 'string' },
   hooks: { referenceTransaction: 'boolean', commitMsg: 'boolean' },

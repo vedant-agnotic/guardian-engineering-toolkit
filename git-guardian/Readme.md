@@ -40,9 +40,11 @@ In a terminal, errors are red, hints yellow, and examples and suggestions green.
 
 - **Readable rules.** Formats use placeholders (`<type>`, `<number>`, `<ticket>`, `<scope>`, `<description>`) and `[ ]` for optional parts.
 - **Guards native Git.** `git switch -c`, `git checkout -b` and `git branch` are checked through Git's `reference-transaction` hook, and `git commit` through `commit-msg`. No wrapper commands to remember.
+- **Smart commit enrichment.** If your commit format includes a `<ticket>` or `<number>` (e.g. `<type>(<ticket>): <description>` or `<ticket> <type>: <description>`) and you omit it, Git Guardian automatically extracts it from your current branch name and injects it into your commit message.
+- **Interactive commit wizard.** Run `npx git-guardian commit` to be guided step-by-step through choosing an allowed type, ticket, and summary, ensuring your commit passes validation on the first try.
 - **Secret scanning.** Each commit's added lines and message are checked for private keys, cloud and SaaS tokens (AWS, GitHub, GitLab, Slack, Stripe, Google, OpenAI, Anthropic, npm and more), passwords in URLs, hard-coded passwords, and files like `.env` or `id_rsa`. Matches are shown masked, never in full.
 - **Helpful rejections.** Every block explains what each placeholder means, shows a valid example and suggests names built from what you typed.
-- **Guided setup.** `init` asks three questions and shows an example after each answer.
+- **Guided setup.** `init` asks interactive questions and shows an example after each answer.
 - **Plays well with existing hooks.** Hooks you already had are backed up, still run first, and are restored on `uninstall`.
 - **No runtime dependencies.**
 
@@ -126,6 +128,7 @@ commit:
   format: "<type>: <description>"
   types: "feat,chore,bugfix,task"
   maxSubjectLength: 72
+  autoTicket: true            # auto-fill <ticket> or <number> from branch if missing
   allowMergeCommits: true     # "Merge ..." messages skip the format check
   allowRevertCommits: true    # "Revert ..." messages skip the format check
 secrets:
@@ -142,6 +145,7 @@ Every field is described in the [reference manual](docs/REFERENCE_MANUAL.md#conf
 
 | Command | Purpose |
 | --- | --- |
+| `commit` | Interactive commit wizard: prompts for type, ticket, and summary, formats the message, and commits |
 | `init [--yes] [--force] [--no-ci]` | Create `.git-guardian.yml` and install hooks; `--no-ci` skips the GitHub Actions question |
 | `install [--force]` | Install or reinstall hooks in this clone |
 | `uninstall` | Remove Guardian's hooks and restore any previous hooks |
@@ -221,15 +225,18 @@ If you use the standalone workflow (`.github/workflows/git-guardian.yml`), remov
 | | Git Guardian | Husky + commitlint | lefthook |
 | --- | --- | --- | --- |
 | Setup | `npm i -D` + `npx git-guardian init` (guided) | `npm i -D`, `husky init`, hook files, commitlint config | Install binary, write `lefthook.yml` |
-| Branch-name rules | Built in, checked before the branch exists | Not included; needs an extra script | Not included; needs a script |
-| Commit-message rules | Built in, readable formats | commitlint rules (JS/JSON config) | Not included; needs commitlint or a script |
-| Secret scan on commit | Built in | Not included | Not included |
+| Configuration syntax | Plain readable formats (`<type>/<ticket>-<desc>`) | Regular expressions & JavaScript configs | Regex or shell scripts |
+| Branch-name rules | Built in, checked before branch is created via Git native hook | Not included; needs an extra custom script | Not included; needs a script |
+| Commit-message rules | Built in, readable formats with smart suggestions | commitlint rules (JS/JSON config) | Not included; needs commitlint or a script |
+| Auto-extract ticket from branch | Built in (`autoTicket: true`, enriches message automatically) | Not included; requires custom shell scripts | Not included; requires custom script |
+| Interactive commit wizard | Built in (`npx git-guardian commit`) | Requires `commitizen` or `@commitlint/prompt-cli` | Not included |
+| Secret scan on commit | Built in (API keys, tokens, `.env` files) | Not included; requires separate tool | Not included |
 | Existing hooks | Backed up, still run, restored on `uninstall` | You manage `.husky/` yourself | You manage `lefthook.yml` yourself |
 | Teammate setup | `npx git-guardian install` (or automate it) | Automatic via the `prepare` script | `lefthook install` |
 | Runs arbitrary tasks (lint, tests) on commit | No | Yes | Yes |
 | CI enforcement | `validate commits`, or [CI Guardian](../ci-guardian/Readme.md) | Separate setup | Separate setup |
 
-Pick Git Guardian when the goal is *naming and message conventions plus secret scanning*, with a CI check that matches. Keep Husky or lefthook for running linters and tests on commit; the two can coexist, because Git Guardian preserves hooks that are already there.
+Pick Git Guardian when the goal is *naming and message conventions, automatic ticket linking, secret scanning, and effortless developer onboarding*, with a CI check that matches. Keep Husky or lefthook for running linters and tests on commit; the two can coexist, because Git Guardian preserves hooks that are already there.
 
 ## Good to know
 

@@ -121,3 +121,26 @@ test('hooks find the project-local CLI from a linked worktree', async () => {
   assert.notEqual(git(tree, ['commit', '-m', 'nonsense']).status, 0);
   assert.equal(git(tree, ['commit', '-m', 'feat: from worktree']).status, 0);
 });
+
+test('commit-msg hook automatically enriches commit message with ticket from branch', () => {
+  const root = repo();
+  const config = createDefaultConfig();
+  config.branch.format = '<type>/<ticket>-<description>';
+  config.commit.format = '<type>(<ticket>): <description>';
+  writeConfig(root, config);
+  installHooks(root, config);
+
+  const cli = join(process.cwd(), 'dist', 'cli.js');
+  const env = { ...process.env, GIT_GUARDIAN_BIN: cli };
+
+  assert.equal(git(root, ['checkout', '-b', 'feat/ABC-123-login'], env).status, 0);
+
+  writeFileSync(join(root, 'file.txt'), 'content\n');
+  assert.equal(git(root, ['add', '.'], env).status, 0);
+
+  const res = git(root, ['commit', '-m', 'feat: login screen'], env);
+  assert.equal(res.status, 0, res.stdout + res.stderr);
+
+  const log = git(root, ['log', '-1', '--pretty=%s'], env);
+  assert.equal(log.stdout.trim(), 'feat(ABC-123): login screen');
+});

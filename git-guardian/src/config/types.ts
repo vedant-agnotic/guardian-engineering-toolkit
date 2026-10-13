@@ -18,6 +18,8 @@ export interface CommitConfig {
   maxSubjectLength: number;
   allowMergeCommits: boolean;
   allowRevertCommits: boolean;
+  /** Automatically populate <ticket> or <number> from the current branch name if omitted in the commit message. */
+  autoTicket: boolean;
 }
 
 export interface SecretsConfig {

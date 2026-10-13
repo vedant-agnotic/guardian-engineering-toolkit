@@ -6,6 +6,7 @@ This manual describes the supplied source, not the superseded JSON/three-hook dr
 
 | Command | Behavior |
 | --- | --- |
+| `commit` | Interactive guided commit wizard; prompts for type, ticket/scope and summary, formats message, validates, and runs git commit |
 | `init [--yes|-y] [--force] [--no-ci]` | Create YAML; prompt on TTY unless yes; optionally install hooks; force replaces config. The last prompt offers to set up CI Guardian (installs it and runs `ci-guardian init --with-git-guardian`); `--no-ci` or `--yes` skips it |
 | `install [--force]` | Load config and install enabled hooks in effective directory |
 | `uninstall` | Remove marked hooks and restore backups; inspect edits first |
@@ -42,6 +43,7 @@ File: `.git-guardian.yml` at Git root. Defaults are in [the example](../examples
 | `commit.format` | `<type>: <description>` / string | Readable format for the first line. Whole line must match |
 | `commit.types` | feat,chore,bugfix,task / CSV | Values allowed for `<type>` |
 | `commit.maxSubjectLength` | 72 / positive integer | Maximum first-line length; suggestions are shortened to fit |
+| `commit.autoTicket` | true / boolean | Automatically populate ticket/number from branch name when commit message format requires it and user omitted it |
 | `commit.allowMergeCommits` | true / boolean | Accept normalized text beginning with Merge word |
 | `commit.allowRevertCommits` | true / boolean | Accept normalized text beginning with Revert word |
 | `secrets.enabled` | true / boolean | Scan staged added lines and the message of each commit for likely secrets |
@@ -53,7 +55,7 @@ Missing or wrong-typed fields fall back to defaults. Unknown keys are ignored; d
 
 ## Commit semantics
 
-The validator trims the whole message before taking its first line, so whitespace is normalized rather than explicitly rejected. Lines starting with `#` (Git's editor comments) are ignored. Prefix exemptions run before length/format checks. The first line must be at most maxSubjectLength characters (JavaScript string length, i.e. UTF-16 code units) and match commit.format. Body/footers are not checked. No file rewrite occurs.
+The validator trims the whole message before taking its first line, so whitespace is normalized rather than explicitly rejected. Lines starting with `#` (Git's editor comments) are ignored. Prefix exemptions run before length/format checks. The first line must be at most maxSubjectLength characters (JavaScript string length, i.e. UTF-16 code units) and match commit.format. Body/footers are not checked. When `commit.autoTicket` is true (the default) and the commit message format expects a ticket or number that was not supplied in the commit message, the `commit-msg` hook extracts the ticket or number from the current Git branch and rewrites the message file before commit completion.
 
 ## Hooks and runtime lookup
 

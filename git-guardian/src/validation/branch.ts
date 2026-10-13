@@ -17,9 +17,38 @@ export function isProtectedBranch(name: string, config: BranchConfig): boolean {
   return splitCsv(config.protected).includes(name);
 }
 
+export function checkGitBranchSyntax(name: string): string | null {
+  if (name.includes(':')) return 'colons (:) are not allowed in Git branch names';
+  if (name.includes('..')) return 'two consecutive dots (..) are not allowed in Git branch names';
+  if (name.includes('~')) return 'tilde (~) is not allowed in Git branch names';
+  if (name.includes('^')) return 'caret (^) is not allowed in Git branch names';
+  if (name.includes('?')) return 'question mark (?) is not allowed in Git branch names';
+  if (name.includes('*')) return 'asterisk (*) is not allowed in Git branch names';
+  if (name.includes('[')) return 'brackets ([) are not allowed in Git branch names';
+  if (name.includes('\\')) return 'backslash (\\) is not allowed in Git branch names';
+  if (name.includes('@{')) return '"@{" is not allowed in Git branch names';
+  if (name.includes('//')) return 'consecutive slashes (//) are not allowed in Git branch names';
+  if (/\s/.test(name)) return 'spaces are not allowed in Git branch names';
+  if (name.startsWith('/')) return 'cannot start with a slash (/)';
+  if (name.endsWith('/')) return 'cannot end with a slash (/)';
+  if (name.startsWith('.')) return 'cannot start with a dot (.)';
+  if (name.endsWith('.')) return 'cannot end with a dot (.)';
+  if (name.endsWith('.lock')) return 'cannot end with ".lock"';
+  return null;
+}
+
 export function validateBranchName(name: string, config: BranchConfig): ValidationResult {
   if (!config.enabled) return { valid: true, suggestions: [] };
   if (isProtectedBranch(name, config)) return { valid: true, suggestions: [] };
+
+  const gitSyntaxError = checkGitBranchSyntax(name);
+  if (gitSyntaxError) {
+    return {
+      valid: false,
+      reason: `Branch "${name}" is invalid: ${gitSyntaxError}.`,
+      suggestions: config.suggestions ? suggestBranchNames(name, config) : [],
+    };
+  }
 
   const compiled = compileBranchFormat(config);
   if (matchesFormat(compiled, name)) return { valid: true, suggestions: [] };

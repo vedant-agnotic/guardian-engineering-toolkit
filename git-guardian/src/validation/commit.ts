@@ -77,3 +77,70 @@ function normalizeDescription(value: string, max: number): string {
   const allowed = Math.max(8, max);
   return noPeriod.length <= allowed ? noPeriod : noPeriod.slice(0, allowed).trimEnd();
 }
+
+export interface EnrichmentResult {
+  updatedMessage: string;
+  ticketOrNumber: string;
+}
+
+/**
+ * If the commit format contains <ticket> or <number> (or optional ones) and the
+ * message omits them, extracts them from the branch name and injects them.
+ */
+export function enrichCommitMessageWithBranch(
+  message: string,
+  branchName: string,
+  config: CommitConfig,
+): EnrichmentResult | null {
+  if (!config.enabled) return null;
+  const compiled = compileCommitFormat(config);
+  const needsTicket = compiled.placeholders.includes('ticket');
+  const needsNumber = compiled.placeholders.includes('number');
+  if (!needsTicket && !needsNumber) return null;
+
+  const branchParts = extractParts(branchName, compiled);
+  const branchTicket = branchParts.ticket;
+  const branchNumber = branchParts.number;
+  if (!branchTicket && !branchNumber) return null;
+
+  const lines = message.split(/\r?\n/);
+  const subjectIndex = lines.findIndex((line) => !line.startsWith('#') && line.trim().length > 0);
+  if (subjectIndex === -1) return null;
+
+  const subject = lines[subjectIndex].trim();
+  if (matchesFormat(compiled, subject)) return null;
+
+  const msgParts = extractParts(subject, compiled);
+  if (needsTicket && msgParts.ticket) return null;
+  if (needsNumber && msgParts.number) return null;
+
+  let preferredType: string | null = null;
+  let description = msgParts.rest.trim();
+  let scope = msgParts.scope;
+
+  const prefix = /^([A-Za-z]+)(?:\(([^)]*)\))?!?\s*:\s*/.exec(description);
+  if (prefix) {
+    preferredType = resolveType(prefix[1], compiled.types);
+    if (prefix[2]) scope = prefix[2].trim().toLowerCase();
+    description = description.slice(prefix[0].length).trim();
+  } else {
+    const leading = /^([A-Za-z]+)[/:\s_-]/.exec(branchName.trim());
+    if (leading) {
+      preferredType = resolveType(leading[1], compiled.types);
+    }
+  }
+
+  const type = preferredType ?? compiled.types[0];
+  const ticket = needsTicket ? branchTicket : undefined;
+  const number = needsNumber ? branchNumber : undefined;
+
+  const newSubject = fillFormat(compiled, { type, ticket, number, scope, description });
+  if (newSubject && matchesFormat(compiled, newSubject) && newSubject.length <= config.maxSubjectLength) {
+    lines[subjectIndex] = newSubject;
+    return {
+      updatedMessage: lines.join('\n'),
+      ticketOrNumber: (ticket ?? number)!,
+    };
+  }
+  return null;
+}

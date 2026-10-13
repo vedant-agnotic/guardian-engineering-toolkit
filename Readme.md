@@ -8,12 +8,12 @@ Independent packages that standardize engineering guardrails across projects: Gi
 
 | Package | Status | Responsibility | First target |
 | --- | --- | --- | --- |
-| <img src="git-guardian/assets/git-guardian-logo.png" alt="" width="50"> <p>[@agnotic/git-guardian](git-guardian/Readme.md)</p> | **Published on npm (`@agnotic/git-guardian`)** | Modern, easy Husky alternative: readable branch-name and commit-message rules (`<type>/<number>-<description>`) plus secret scanning on commit, enforced by local Git hooks | Ordinary Git repos across project languages |
-| <img src="ci-guardian/assets/ci-guardian-logo.png" alt="" width="50"> <p>[@agnotic/ci-guardian](ci-guardian/Readme.md)</p> | **v0.1.0 (publish-ready npm package)** | Standardized CI quality checks (lint, test, type-check, audit) locally and in GitHub Actions behind one required status check | JavaScript / TypeScript, React Native, generic CLIs |
+| <img src="git-guardian/assets/git-guardian-logo.png" alt="" width="50"> <p>[@agnotic/git-guardian](git-guardian/Readme.md)</p> | **Published on npm (`@agnotic/git-guardian`)** | Modern, zero-regex Husky alternative: readable branch-name rules enforced natively before branch creation, commit-message format validation, auto branch ticket extraction, interactive commit wizard (`git-guardian commit`), and secret scanning on commit | Ordinary Git repos across project languages |
+| <img src="ci-guardian/assets/ci-guardian-logo.png" alt="" width="50"> <p>[@agnotic/ci-guardian](ci-guardian/Readme.md)</p> | **v0.1.0 (published npm package)** | Standardized CI quality checks (lint, test, type-check, audit) locally and in GitHub Actions behind one required status check | JavaScript / TypeScript, React Native, generic CLIs |
 | <img src="config-guardian/assets/config-guardian-logo.png" alt="" width="50"> <p>[config-guardian](config-guardian/Readme.md)</p> | Design draft | Define app environments once; generate and validate native configuration | RN development/staging/production on iOS and Android |
 | <img src="release-guardian/assets/release-guardian-logo.png" alt="" width="50"> <p>[release-guardian](release-guardian/Readme.md)</p> | Design draft | Build, sign and upload mobile internal releases | RN iOS/TestFlight, then Android/Play Internal |
 
-Git Guardian and CI Guardian are production-ready CLIs with comprehensive test suites. Git Guardian is published on npm as [`@agnotic/git-guardian`](https://www.npmjs.com/package/@agnotic/git-guardian). CI Guardian is packaged under [`@agnotic/ci-guardian`](https://www.npmjs.com/package/@agnotic/ci-guardian) with MIT licensing and published npm package integration.
+Git Guardian and CI Guardian are production-ready CLIs with comprehensive test suites. Git Guardian is published on npm as [`@agnotic/git-guardian`](https://www.npmjs.com/package/@agnotic/git-guardian). CI Guardian is published on npm as [`@agnotic/ci-guardian`](https://www.npmjs.com/package/@agnotic/ci-guardian) with MIT licensing and seamless two-way integration.
 
 Start with [GUARDIAN_TOOLKIT_MANUAL.md](GUARDIAN_TOOLKIT_MANUAL.md) for the overall reference and implementation sequence.
 
@@ -84,4 +84,4 @@ Git Guardian hardening and first public npm release → safe installer → CI Gu
 
 ## License
 
-Git Guardian is [MIT](git-guardian/LICENSE). The other packages have no license selected yet and are marked `UNLICENSED` until they are ready to publish.
+Git Guardian and CI Guardian are [MIT](git-guardian/LICENSE). The other packages have no license selected yet and are marked `UNLICENSED` until they are ready to publish.

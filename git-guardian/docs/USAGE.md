@@ -40,13 +40,14 @@ git switch -c feat/123-add-login
 git-guardian validate branch feat/123-add-login
 git-guardian validate commit -m 'feat: add login'
 git-guardian branch suggest 'ABC-123 add login'   # → feat/123-add-login, ...
+git-guardian commit                               # interactive commit wizard
 ```
 
 Native branch operations are checked when Git invokes the installed reference hook. The helper `git-guardian branch create feat/123-add-login --from develop` validates and runs `git switch -c`; it also switches the current branch.
 
 On rejection, the message shows the format, what each placeholder means, an example and up to three suggestions. A suggestion may still contain a placeholder such as `<number>` when it could not be guessed from the input; replace it before use. Existing branches are not retroactively rejected by a pre-commit hook because this version has none.
 
-The commit hook validates the message and does not rewrite it. Default Merge/Revert prefix exemptions are enabled; disable them in YAML if your policy needs checks on those subjects. These are prefix-based exemptions, not verification that Git generated the message.
+The commit hook validates the message. If your format requires a ticket/number (e.g. `<type>(<ticket>): <description>` or `<ticket> <type>: <description>`) and you omit it, Git Guardian automatically detects it from your current branch name and enriches the commit message file on the fly (can be disabled via `commit.autoTicket: false`). Default Merge/Revert prefix exemptions are enabled; disable them in YAML if your policy needs checks on those subjects. Alternatively, run `git-guardian commit` for a step-by-step interactive prompt that composes a valid commit message for you.
 
 ## Existing hooks and Husky
 

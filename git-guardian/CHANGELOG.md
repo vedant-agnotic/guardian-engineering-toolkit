@@ -1,5 +1,13 @@
 # Documentation changelog
 
+## 0.1.2 — 2026-10-13
+
+- Added `commit.autoTicket: true` (default): automatically extracts the ticket or number from the current branch name and enriches the commit message when omitted.
+- Added `git-guardian commit`: interactive guided commit wizard prompting for type, ticket/scope, and description with instant validation.
+- Added standard Git ref name validation rules checking against Git forbidden characters (`:`, `..`, `~`, `^`, `?`, `*`, `[`, `\`, `@{`, `//`, `.lock`).
+- Added Question 4 to `git-guardian init` to easily exclude standard branches (`main`, `develop`, etc.) from naming rules.
+- Seamless integration with published `@agnotic/ci-guardian` package.
+
 ## Unreleased
 
 - Replaced regular expressions with readable formats such as `<type>/<number>-<description>`; placeholders are `<type>`, `<number>`, `<ticket>`, `<scope>` and `<description>`, with `[ ]` for optional parts.

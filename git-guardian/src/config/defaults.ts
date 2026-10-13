@@ -21,6 +21,7 @@ export function createDefaultConfig(): GitGuardianConfig {
       maxSubjectLength: 72,
       allowMergeCommits: true,
       allowRevertCommits: true,
+      autoTicket: true,
     },
     secrets: {
       enabled: true,

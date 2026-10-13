@@ -21,6 +21,21 @@ test('names the unknown type', () => {
   assert.match(validateBranchName('wip/123-thing', config).reason, /"wip" is not an allowed type/);
 });
 
+test('detects syntax forbidden by Git in branch names', () => {
+  const colon = validateBranchName('feat/123:login', config);
+  assert.equal(colon.valid, false);
+  assert.match(colon.reason, /colons \(:\) are not allowed/);
+  assert.deepEqual(colon.suggestions, [
+    'feat/123-login',
+    'chore/123-login',
+    'bugfix/123-login',
+  ]);
+
+  for (const invalid of ['feat/123..4', 'feat/1~2', 'feat/1^2', 'feat/1?2', 'feat/1*2', 'feat/1[2', 'feat/1\\2', '/feat/1', 'feat/1/', 'feat//1', '.feat', 'feat.lock']) {
+    assert.equal(validateBranchName(invalid, config).valid, false, invalid);
+  }
+});
+
 test('allows protected branches', () => {
   assert.equal(validateBranchName('main', config).valid, true);
   assert.equal(validateBranchName('develop', config).valid, true);

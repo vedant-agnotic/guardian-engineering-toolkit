@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path';
 import { createBranchCommand, suggestBranchCommand } from './commands/branch.js';
 import { guidedBranchCommand } from './commands/guided.js';
 import { listPresetsCommand, testPresetCommand } from './commands/presets.js';
+import { guidedCommitCommand } from './commands/commit.js';
 import { doctorCommand } from './commands/doctor.js';
 import { scanCommand } from './commands/scan.js';
 import { initCommand } from './commands/init.js';
@@ -54,6 +55,9 @@ async function main(): Promise<void> {
       return;
     case 'branch':
       await handleBranch(args);
+      return;
+    case 'commit':
+      await guidedCommitCommand(args);
       return;
     case 'scan':
       scanCommand({ message: optionValue(args, '--message') ?? optionValue(args, '-m'), range: optionValue(args, '--range') });
@@ -193,11 +197,13 @@ function printHelp(): void {
       section('Secrets'),
       row('scan [-m "message"]', 'Scan staged changes for keys, tokens and passwords'),
       row('scan --range <base>..<head>', 'Scan the lines added in a range (for CI)'),
-      section('Branches'),
-      row('branch create [<name>] [--from <ref>]', 'Validate, then create a branch (prompts for the parts if no name)'),
+      section('Workflow Helpers'),
+      row('branch create [<name>] [--from <ref>]', 'Validate, then create a branch (prompts if no name)'),
       row('branch suggest <description>', 'Suggest branch names that follow the format'),
+      row('commit [git-commit-options]', 'Guided commit wizard (prompts for type, ticket, summary)'),
       section('Examples'),
       example('git-guardian init'),
+      example('git-guardian commit'),
       example('git-guardian branch create feat/123-add-login'),
       example('git-guardian branch suggest "123 add passkey login"'),
       example('git-guardian validate commit -m "feat: add passkey login"'),

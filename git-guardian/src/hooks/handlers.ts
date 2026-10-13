@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { loadConfig } from '../config/load.js';
-import { getRepoRoot, isMerging, refExists } from '../core/git.js';
-import { ui } from '../core/log.js';
+import { currentBranch, getRepoRoot, isMerging, refExists } from '../core/git.js';
+import { out, ui } from '../core/log.js';
 import { validateBranchName } from '../validation/branch.js';
-import { validateCommitMessage } from '../validation/commit.js';
+import { enrichCommitMessageWithBranch, validateCommitMessage } from '../validation/commit.js';
 import { explainSecrets, explainViolation } from '../validation/explain.js';
 import { splitCsv } from '../config/validate.js';
 import { scanMessage, scanStaged } from '../secrets/scan.js';
@@ -11,7 +11,20 @@ import { scanMessage, scanStaged } from '../secrets/scan.js';
 export function handleCommitMsg(messageFile: string, cwd = process.cwd()): number {
   const repoRoot = getRepoRoot(cwd);
   const config = loadConfig(repoRoot);
-  const message = readFileSync(messageFile, 'utf8');
+  let message = readFileSync(messageFile, 'utf8');
+
+  // Auto-enrich commit message with ticket/number from branch if enabled
+  if (config.commit.enabled && config.commit.autoTicket !== false && !isMerging(repoRoot)) {
+    const branch = currentBranch(repoRoot);
+    if (branch) {
+      const enrichment = enrichCommitMessageWithBranch(message, branch, config.commit);
+      if (enrichment) {
+        writeFileSync(messageFile, enrichment.updatedMessage, 'utf8');
+        message = enrichment.updatedMessage;
+        ui.info(`Git Guardian: added ${out.green(enrichment.ticketOrNumber)} from branch to commit message.`);
+      }
+    }
+  }
 
   if (config.secrets.enabled && !isMerging(repoRoot)) {
     // A merge brings in changes already committed elsewhere; scan those where they were written.
